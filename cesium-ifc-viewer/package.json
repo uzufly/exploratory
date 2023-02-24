@@ -1,0 +1,101 @@
+{
+  "name": "@uzufly/cesium-ifc-viewer",
+  "version": "0.9.0",
+  "description": "An exploratory ‹cesium-ifc-viewer› Web Component",
+  "module": "dist/cesium-ifc-viewer.js",
+  "source": "src/cesium-ifc-viewer.js",
+  "author": "Olivier Lange (https://github.com/olange)",
+  "contributors": [
+    "Théo Gerritsen (https://github.com/theogerritsen)"
+  ],
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "keywords": [
+    "cesium",
+    "ifc",
+    "viewer",
+    "custom-element",
+    "web-components",
+    "javascript",
+    "lit",
+    "exploratory"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist .parcel-cache",
+    "start": "parcel index.html",
+    "build": "parcel build",
+    "prebuild": "npm run clean && mkdir dist",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uzufly/exploratory.git",
+    "directory": "cesium-ifc-viewer"
+  },
+  "bugs": {
+    "url": "https://github.com/uzufly/exploratory/issues"
+  },
+  "homepage": "https://github.com/uzufly/exploratory#readme",
+  "devDependencies": {
+    "@parcel/transformer-inline-string": "^2.8.3",
+    "parcel": "latest",
+    "parcel-reporter-static-files-copy": "^1.5.0"
+  },
+  "dependencies": {
+    "cesium": "^1.103.0",
+    "lit": "^2.6.1",
+    "web-ifc": "0.0.35",
+    "web-ifc-three": "^0.0.121",
+    "web-ifc-viewer": "^1.0.213"
+  },
+  "browser": {
+    "assert": false,
+    "buffer": false,
+    "crypto": false,
+    "fs": false,
+    "http": false,
+    "https": false,
+    "path": false,
+    "process": false,
+    "querystring": false,
+    "stream": false,
+    "url": false,
+    "util": false,
+    "zlib": false
+  },
+  "files": [
+    "dist/cesium-ifc-viewer.js",
+    "dist/cesium-ifc-viewer.js.map"
+  ],
+  "//": "note the *.wasm entries should come last, otherwise the plugin complains about `dist/static/` dir missing",
+  "staticFiles": [
+    {
+      "staticOutPath": "static/Assets",
+      "staticPath": "node_modules/cesium/Build/Cesium/Assets"
+    },
+    {
+      "staticOutPath": "static/ThirdParty",
+      "staticPath": "node_modules/cesium/Build/Cesium/ThirdParty"
+    },
+    {
+      "staticOutPath": "static/Widgets",
+      "staticPath": "node_modules/cesium/Build/Cesium/Widgets"
+    },
+    {
+      "staticOutPath": "static/Workers",
+      "staticPath": "node_modules/cesium/Build/Cesium/Workers"
+    },
+    {
+      "staticOutPath": "static",
+      "staticPath": "node_modules/web-ifc/web-ifc.wasm"
+    },
+    {
+      "staticOutPath": "static",
+      "staticPath": "node_modules/web-ifc/web-ifc-mt.wasm"
+    }
+  ]
+}
