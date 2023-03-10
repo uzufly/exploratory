@@ -1,12 +1,12 @@
 {
   "name": "@uzufly/cesium-ifc-viewer",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "An exploratory ‹cesium-ifc-viewer› Web Component",
   "module": "dist/cesium-ifc-viewer.js",
   "source": "src/cesium-ifc-viewer.js",
   "author": "Olivier Lange (https://github.com/olange)",
   "contributors": [
-    "Théo Gerritsen (https://github.com/theogerritsen)"
+    "Theo Gerritsen (https://github.com/theogerritsen)"
   ],
   "license": "Apache-2.0",
   "publishConfig": {
