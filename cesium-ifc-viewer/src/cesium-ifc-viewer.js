@@ -3,7 +3,7 @@ import { Ion, Viewer, ShadowMode, createWorldTerrain, defined,
   Color, Entity, ScreenSpaceEventHandler, ScreenSpaceEventType,
   Cesium3DTileStyle, Cesium3DTileset, IonResource,
   Cartesian3, Matrix4, HeightReference,
-  OpenStreetMapImageryProvider
+  OpenStreetMapImageryProvider, JulianDate
 } from 'cesium';
 import { default as viewerDragDropMixin } from './viewerDragDropMixin.js';
 
@@ -226,6 +226,8 @@ export class CesiumIFCViewer extends LitElement {
 
     viewer.extend(viewerDragDropMixin, dragDropMixinOptions);
     viewer.dropError.addEventListener(this._dropErrorHandler.bind(this));
+
+    viewer.clock.currentTime = JulianDate.fromIso8601("2022-08-01T12:00:00Z");
 
     const tileset = new Cesium3DTileset({
         url: IonResource.fromAssetId(CESIUM_VERNETS_CLIPPED_ION_ASSET_ID),
