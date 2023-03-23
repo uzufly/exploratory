@@ -1,6 +1,6 @@
 {
   "name": "@uzufly/cesium-ifc-viewer",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "An exploratory ‹cesium-ifc-viewer› Web Component",
   "module": "dist/cesium-ifc-viewer.js",
   "source": "src/cesium-ifc-viewer.js",
@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "cesium": "^1.103.0",
-    "lit": "^2.6.1",
+    "lit": "^2.7.0",
     "web-ifc": "0.0.35",
     "web-ifc-three": "^0.0.121",
     "web-ifc-viewer": "^1.0.213"
