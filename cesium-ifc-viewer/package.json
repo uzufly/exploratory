@@ -25,9 +25,11 @@
   ],
   "scripts": {
     "clean": "npx del --force dist .parcel-cache",
+    "format": "prettier \"{src,examples}/**/*.{js,html,css}\" --write",
+    "lint": "eslint . --ext .js",
     "start": "parcel index.html",
-    "build": "parcel build",
-    "prebuild": "npm run clean && npx make-dir dist",
+    "build": "parcel build --public-url ./",
+    "prebuild": "npm run clean && npm run lint && npx make-dir dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepublishOnly": "npm run build"
   },
@@ -42,10 +44,14 @@
   "homepage": "https://github.com/uzufly/exploratory#readme",
   "devDependencies": {
     "@parcel/transformer-inline-string": "^2.8.3",
+    "del-cli": "^5.0.0",
+    "eslint": "^8.36.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-custom-elements": "^0.0.7",
+    "make-dir-cli": "^3.0.0",
     "parcel": "latest",
     "parcel-reporter-static-files-copy": "^1.5.0",
-    "del-cli": "^5.0.0",
-    "make-dir-cli": "^3.0.0"
+    "prettier": "^2.8.6"
   },
   "dependencies": {
     "cesium": "^1.103.0",

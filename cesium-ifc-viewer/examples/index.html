@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>‹cesium-ifc-viewer› Web Component · Uzufly/Exploratory</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <cesium-ifc-viewer
+      cesium-base-url="/static/"
+      ifc-base-url="../../static/"
+      ion-access-token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5ZGJmOTA1NS0wOGE4LTQ4NjYtYmJmZC1iMTE1NzRjZjIxNTUiLCJpZCI6MzIzMDIsImlhdCI6MTY3ODIwNjY0OX0.b5BZMKngT-7-Tw9hbg_6kfqMG7n9_f7dgMNq_5uEZbY"
+      model-origin="[ 6.137499506, 46.192506022, 425.999 ]"
+      model-orientation="[ 90, 0, 0 ]"
+      clamp-to-ground
+    >
+      <h1>Cesium IFC viewer</h1>
+      <p>
+        <em>Drag & drop</em> an <strong>IFC file</strong> anywhere on this
+        canvas.
+      </p>
+    </cesium-ifc-viewer>
+    <script type="module" src="../src/cesium-ifc-viewer.js"></script>
+  </body>
+</html>

@@ -1,4 +1,6 @@
-# Project generated files
-dist/
+# Parcel generated folders
 .parcel-cache/
+dist/
+
+# NPM generated folder
 node_modules/

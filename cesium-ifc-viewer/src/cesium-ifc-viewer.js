@@ -1,17 +1,30 @@
-import { LitElement, html, css, unsafeCSS } from 'lit';
-import { Ion, Viewer, ShadowMode, createWorldTerrain, defined,
-  Color, Entity, ScreenSpaceEventHandler, ScreenSpaceEventType,
-  Cesium3DTileStyle, Cesium3DTileset, IonResource,
-  Cartesian3, Matrix4, HeightReference,
-  OpenStreetMapImageryProvider, JulianDate
-} from 'cesium';
-import { default as viewerDragDropMixin } from './viewerDragDropMixin.js';
+import { LitElement, html, css, unsafeCSS } from "lit";
+import {
+  Ion,
+  Viewer,
+  ShadowMode,
+  createWorldTerrain,
+  defined,
+  Color,
+  Entity,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
+  Cesium3DTileStyle,
+  Cesium3DTileset,
+  IonResource,
+  Cartesian3,
+  Matrix4,
+  HeightReference,
+  OpenStreetMapImageryProvider,
+  JulianDate,
+} from "cesium";
+import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
 
-import cesiumWidgetsRawCSS from 'bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css';
+import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
 
 const CESIUM_VERNETS_CLIPPED_ION_ASSET_ID = 1556965, // ifc-cesium-showcase-cesium-vernets-clipped
-      SOCLE_VERNETS_CNPA_ION_ASSET_ID = 1557489;     // ifc-cesium-showcase-socle-vernets-CNPA-v2
+  SOCLE_VERNETS_CNPA_ION_ASSET_ID = 1557489; // ifc-cesium-showcase-socle-vernets-CNPA-v2
 
 const ourViewerOptions = {
   animation: false,
@@ -25,7 +38,7 @@ const ourViewerOptions = {
   navigationInstructionsInitiallyVisible: false,
   navigationHelpButton: false,
   shadows: true,
-  terrainShadows: ShadowMode.ENABLED
+  terrainShadows: ShadowMode.ENABLED,
 };
 
 /**
@@ -44,10 +57,8 @@ const ourViewerOptions = {
  *   styling can be applied with a `::slotted(text)` pseudo-element.
  * @csspart slotted - The slotted content's `<div>` container element.
  */
-export class CesiumIFCViewer extends LitElement {
-
+export class CesiumIfcViewer extends LitElement {
   static properties = {
-
     /**
      * Geographic coordinates at which any dropped IFC file will be
      * placed, if it does not contain any georeference.
@@ -124,18 +135,28 @@ export class CesiumIFCViewer extends LitElement {
      * Internal property, which is set if a runtime error pops up while
      * processing the file that was dragged on top of the viewer.
      */
-    _dropError: { type: Object, state: true }
+    _dropError: { type: Object, state: true },
   };
 
   static get styles() {
     return [
       cesiumWidgetsCSS,
       css`
-        *, ::after, ::before { box-sizing: border-box; }
-        :host { display: flex; height: 100%; }
-        div[part=slotted] {}
-        div[part=msg] {}`
-    ]
+        *,
+        ::after,
+        ::before {
+          box-sizing: border-box;
+        }
+        :host {
+          display: flex;
+          height: 100%;
+        }
+        div[part="slotted"] {
+        }
+        div[part="msg"] {
+        }
+      `,
+    ];
   }
 
   constructor() {
@@ -157,7 +178,7 @@ export class CesiumIFCViewer extends LitElement {
   }
 
   render() {
-    return [ this.renderSlotted(), this.renderDropErrorIfAny() ];
+    return [this.renderSlotted(), this.renderDropErrorIfAny()];
   }
 
   renderSlotted() {
@@ -168,39 +189,43 @@ export class CesiumIFCViewer extends LitElement {
     if (!this._dropError) return;
     const { source, error } = this._dropError;
     return html`<div part="msg">
-        <p><strong>Error processing <code>${source}</code></strong></p>
-        <blockquote><code>${error}</code></blockquote>
-      </div>`;
+      <p>
+        <strong>Error processing <code>${source}</code></strong>
+      </p>
+      <blockquote><code>${error}</code></blockquote>
+    </div>`;
   }
 
-  _dropErrorHandler( viewerArg, source, error) {
+  _dropErrorHandler(viewerArg, source, error) {
     this._dropError = { source, error };
     // viewerArg is unused
   }
 
   firstUpdated() {
-    CesiumIFCViewer._setCesiumGlobalConfig(this.cesiumBaseURL, this.ionAccessToken);
+    CesiumIfcViewer._setCesiumGlobalConfig(
+      this.cesiumBaseURL,
+      this.ionAccessToken
+    );
     this._viewer = this._createCesiumViewer(this.renderRoot);
   }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
     // this is the way the Cesium Viewer requires it to resolve its static resources
     // (see https://github.com/CesiumGS/cesium/issues/8327)
-    if( defined( cesiumBaseURL)) {
-      window.CESIUM_BASE_URL = cesiumBaseURL; }   // … side-effect! in global scope!!
+    if (defined(cesiumBaseURL)) {
+      window.CESIUM_BASE_URL = cesiumBaseURL;
+    } // … side-effect! in global scope!!
 
-    if( defined( ionAccessToken)) {
-      Ion.defaultAccessToken = ionAccessToken; }  // … more side-effects! contained at least
+    if (defined(ionAccessToken)) {
+      Ion.defaultAccessToken = ionAccessToken;
+    } // … more side-effects! contained at least
   }
 
   _createCesiumViewer(containerEl) {
-    const viewer = new Viewer(
-      containerEl,
-      {
-        ...ourViewerOptions,
-        terrainProvider: createWorldTerrain()
-      }
-    );
+    const viewer = new Viewer(containerEl, {
+      ...ourViewerOptions,
+      terrainProvider: createWorldTerrain(),
+    });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
@@ -221,7 +246,7 @@ export class CesiumIFCViewer extends LitElement {
       modelOrigin: this.modelOrigin,
       modelOrientation: this.modelOrientation,
       clampToGround: this.clampToGround,
-      ifcBaseURL: this.ifcBaseURL
+      ifcBaseURL: this.ifcBaseURL,
     };
 
     viewer.extend(viewerDragDropMixin, dragDropMixinOptions);
@@ -230,27 +255,26 @@ export class CesiumIFCViewer extends LitElement {
     viewer.clock.currentTime = JulianDate.fromIso8601("2022-08-01T12:00:00Z");
 
     const tileset = new Cesium3DTileset({
-        url: IonResource.fromAssetId(CESIUM_VERNETS_CLIPPED_ION_ASSET_ID),
-        shadows: ShadowMode.DISABLED,
-        maximumScreenSpaceError: 1
-      });
+      url: IonResource.fromAssetId(CESIUM_VERNETS_CLIPPED_ION_ASSET_ID),
+      shadows: ShadowMode.DISABLED,
+      maximumScreenSpaceError: 1,
+    });
 
-      let translation = Cartesian3.fromArray([0.0, 0.0, 6]);
-      let matrix = Matrix4.fromTranslation(translation);
+    let translation = Cartesian3.fromArray([0.0, 0.0, 6]);
+    let matrix = Matrix4.fromTranslation(translation);
 
-      tileset.modelMatrix = matrix;
+    tileset.modelMatrix = matrix;
 
-      tileset.style = new Cesium3DTileStyle({
-        heightReference: HeightReference.CLAMP_TO_GROUND
-      });
+    tileset.style = new Cesium3DTileStyle({
+      heightReference: HeightReference.CLAMP_TO_GROUND,
+    });
 
-      const socle = new Cesium3DTileset({
-          url: IonResource.fromAssetId(SOCLE_VERNETS_CNPA_ION_ASSET_ID), // ifc-cesium-showcase-socle-vernets-CNPA-v2
-          shadows: ShadowMode.DISABLED,
-      });
+    const socle = new Cesium3DTileset({
+      url: IonResource.fromAssetId(SOCLE_VERNETS_CNPA_ION_ASSET_ID), // ifc-cesium-showcase-socle-vernets-CNPA-v2
+      shadows: ShadowMode.DISABLED,
+    });
 
-      socle.modelMatrix = matrix;
-
+    socle.modelMatrix = matrix;
 
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
@@ -260,19 +284,18 @@ export class CesiumIFCViewer extends LitElement {
   }
 
   modelTooltipMixin(viewer) {
-    console.log(`modelTooltipMixin(): viewer`, viewer);
+    // console.log(`modelTooltipMixin(): viewer`, viewer);
 
     // Défintion des constantes et variables
     const container = viewer.container;
     const scene = viewer.scene;
-    const handler = new ScreenSpaceEventHandler(scene.canvas)
+    const handler = new ScreenSpaceEventHandler(scene.canvas);
     let highlightedModel = null;
     let clickedModel = null;
     let tooltip = null;
 
     // Highlight du modèle on hover
     function highlightModel(model, clickedModel) {
-
       // Si une entité n'est pas déjà en rouge à cause d'un clic
       if (clickedModel === null) {
         if (model !== highlightedModel) {
@@ -286,7 +309,6 @@ export class CesiumIFCViewer extends LitElement {
 
     // Remettre l'entité hovered avec sa couleur d'origine
     function unhighlightModel() {
-
       if (clickedModel === null) {
         if (highlightedModel) {
           highlightedModel.color = Color.WHITE;
@@ -299,29 +321,30 @@ export class CesiumIFCViewer extends LitElement {
     function onMouseMove(movement) {
       let pickedObject = scene.pick(movement.endPosition);
       if (defined(pickedObject) && pickedObject.id instanceof Entity) {
-        highlightModel(pickedObject.id.model, clickedModel)
+        highlightModel(pickedObject.id.model, clickedModel);
 
         if (tooltip !== null) {
           container.removeChild(tooltip);
           tooltip = null;
         }
 
-        tooltip = document.createElement('div');
-        tooltip.setAttribute('class', 'tooltip');
-        tooltip.style.top = (movement.endPosition.y + 50) + 'px';
-        tooltip.style.left = (movement.endPosition.x + 50) + 'px';
-        tooltip.style.position = 'absolute';
-        tooltip.style.background = 'white';
-        tooltip.style.color = 'black';
-        tooltip.style.padding = '5px';
-        tooltip.style.borderRadius = '5px';
+        tooltip = document.createElement("div");
+        tooltip.setAttribute("class", "tooltip");
+        tooltip.style.top = movement.endPosition.y + 50 + "px";
+        tooltip.style.left = movement.endPosition.x + 50 + "px";
+        tooltip.style.position = "absolute";
+        tooltip.style.background = "white";
+        tooltip.style.color = "black";
+        tooltip.style.padding = "5px";
+        tooltip.style.borderRadius = "5px";
 
         const categoryName = `${pickedObject.id.categoryName}`;
         const levelName = `${pickedObject.id.levelName}`;
         tooltip.innerHTML =
-          (typeof categoryName !== "undefined" && categoryName !== "allCategories")
-          ? `Level: <strong>${levelName}</strong></br>Category: <strong>${categoryName}</strong>`
-          : `Level: <strong>${levelName}</strong><br>`;
+          typeof categoryName !== "undefined" &&
+          categoryName !== "allCategories"
+            ? `Level: <strong>${levelName}</strong></br>Category: <strong>${categoryName}</strong>`
+            : `Level: <strong>${levelName}</strong><br>`;
 
         container.appendChild(tooltip);
       } else {
@@ -340,7 +363,7 @@ export class CesiumIFCViewer extends LitElement {
         unclickModel();
 
         clickedModel = model;
-        console.log(clickedModel);
+        // console.log(clickedModel);
         model.color = Color.RED;
       }
     }
@@ -367,4 +390,6 @@ export class CesiumIFCViewer extends LitElement {
   }
 }
 
-window.customElements.define('cesium-ifc-viewer', CesiumIFCViewer);
+if (!window.customElements.get("cesium-ifc-viewer")) {
+  window.customElements.define("cesium-ifc-viewer", CesiumIfcViewer);
+}

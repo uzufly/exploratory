@@ -1,4 +1,4 @@
-import { IfcViewerAPI } from 'web-ifc-viewer';
+import { IfcViewerAPI } from "web-ifc-viewer";
 
 import {
   IFCWALL,
@@ -16,13 +16,12 @@ import {
   IFCCOLUMN,
   IFCFLOWTERMINAL,
   IFCRAILING,
-  IFCCOVERING,
   IFCFURNISHINGELEMENT,
   IFCROOF,
   IFCTRANSPORTELEMENT,
   IFCBEAM,
-  IFCCOVERING} from 'web-ifc';
-
+  IFCCOVERING,
+} from "web-ifc";
 
 import {
   buildModuleUrl,
@@ -45,8 +44,8 @@ import {
   Entity,
   EntityCluster,
   EntityCollection,
-  Transforms
-} from 'cesium';
+  Transforms,
+} from "cesium";
 
 // import { createGuid } from "@cesium/engine";
 
@@ -113,20 +112,26 @@ import {
 // }
 
 function onProgress(progress, total, process) {
-  console.log(`IFCDataSource › processIFCData() › onProgress:`, progress, total, process);
+  // eslint-disable-next-line no-console
+  console.debug(
+    `IFCDataSource › processIFCData() › onProgress:`,
+    progress,
+    total,
+    process
+  );
 }
 
 async function processIFCData(dataSource, data, options) {
-  console.log(`IFCDataSource › processIFCData(dataSource, data, options)`,
-    dataSource, dumpIfcData(data, 100), options); // DEBUG
+  // console.log(`IFCDataSource › processIFCData(dataSource, data, options)`,
+  //   dataSource, dumpIfcData(data, 100), options); // DEBUG
 
   // const cesiumBaseURL = buildModuleUrl(); // "http://localhost:1234/static/", i.e. FQDN(CESIUM_BASE_URL)
   const ifcBaseURL = options.ifcBaseURL;
-  console.log(`IFCDataSource › processIFCData() › ifcBaseURL`, ifcBaseURL); // DEBUG
+  // console.log(`IFCDataSource › processIFCData() › ifcBaseURL`, ifcBaseURL); // DEBUG
 
   const viewerIFC = new IfcViewerAPI({ container: dataSource.canvas });
   viewerIFC.IFC.setWasmPath(ifcBaseURL);
-  console.log(`IFCDataSource › processIFCData() › viewerIFC`, viewerIFC); // DEBUG
+  // console.log(`IFCDataSource › processIFCData() › viewerIFC`, viewerIFC); // DEBUG
 
   const dataAsBlobURL = URL.createObjectURL(data);
   const result = await viewerIFC.GLTF.exportIfcFileAsGltf({
@@ -153,43 +158,49 @@ async function processIFCData(dataSource, data, options) {
       IFCROOF: [IFCROOF],
       IFCTRANSPORTELEMENT: [IFCTRANSPORTELEMENT],
       IFCBEAM: [IFCBEAM],
-      IFCCOVERING: [IFCCOVERING]
-
+      IFCCOVERING: [IFCCOVERING],
     },
-    getProperties: true,
-    getModels: true,
-    onProgress: onProgress
+    getProperties: false, // NOTE: traitement des propriétés désactivé, parce qu'on ne sait pas
+    getModels: true, // bien faire le lien entre le modèle GLTF et les propriétés IFC
+    onProgress: onProgress,
     // coordinationMatrix: Matrix4
   });
-  console.log(`IFCDataSource › processIFCData() › result`, result); // DEBUG
+  // console.log(`IFCDataSource › processIFCData() › result`, result); // DEBUG
 
   URL.revokeObjectURL(dataAsBlobURL);
   await viewerIFC.dispose();
 
   // TODO: normaliser ces valeurs et définir valeurs par défaut
-  const [ lat, long, alt ] = options.modelOrigin; // [ 6.137499506, 46.192506022, 425.999 ]
-  const [ heading, pitch, roll ] = options.modelOrientation;
+  const [lat, long, alt] = options.modelOrigin; // [ 6.137499506, 46.192506022, 425.999 ]
+  const [heading, pitch, roll] = options.modelOrientation;
   const clampToGround = options.clampToGround;
 
-  const modelOrigin = Cartesian3.fromDegrees( lat, long, alt);
-  const [ headingRad, pitchRad, rollRad ] = [ Math.toRadians(heading), Math.toRadians(pitch), Math.toRadians(roll) ];
-  const HPR = new HeadingPitchRoll( headingRad, pitchRad, rollRad);
-  const modelOrientation = Transforms.headingPitchRollQuaternion( modelOrigin, HPR);
+  const modelOrigin = Cartesian3.fromDegrees(lat, long, alt);
+  const [headingRad, pitchRad, rollRad] = [
+    Math.toRadians(heading),
+    Math.toRadians(pitch),
+    Math.toRadians(roll),
+  ];
+  const HPR = new HeadingPitchRoll(headingRad, pitchRad, rollRad);
+  const modelOrientation = Transforms.headingPitchRollQuaternion(
+    modelOrigin,
+    HPR
+  );
 
   // const fileObjURLs = [];
-  for(const categoryName in result.gltf) {
+  for (const categoryName in result.gltf) {
     // Catégories de l'IFC (`allCategories`)
     const category = result.gltf[categoryName];
-    for(const levelName in category) {
+    for (const levelName in category) {
       // Niveaux de l'IFC
-      console.log(`IFCDataSource › processIFCData() › Processing category ${categoryName}, level ${levelName}…`); // DEBUG
+      // console.log(`IFCDataSource › processIFCData() › Processing category ${categoryName}, level ${levelName}…`); // DEBUG
       const file = category[levelName].file;
-      if(file) {
+      if (file) {
         // Ajout de chaque fichier glTF à la scène
         const fileObjURL = URL.createObjectURL(file);
         // fileObjURLs.push(fileObjURL);
         const modelName =
-          (categoryName !== "allCategories")
+          categoryName !== "allCategories"
             ? `Category: ${categoryName} / Level: ${levelName}`
             : `Level: ${levelName}`;
         dataSource.entities.add({
@@ -203,8 +214,9 @@ async function processIFCData(dataSource, data, options) {
             silhouetteColor: Color.WHITE.withAlpha(0.5),
             silhouetteSize: 2.0,
             shadows: true,
-            heightReference:
-              clampToGround ? HeightReference.CLAMP_TO_GROUND : HeightReference.RELATIVE_TO_GROUND
+            heightReference: clampToGround
+              ? HeightReference.CLAMP_TO_GROUND
+              : HeightReference.RELATIVE_TO_GROUND,
           },
         });
       }
@@ -212,18 +224,23 @@ async function processIFCData(dataSource, data, options) {
   }
 
   // Fichier JSON en sortie
+  //
+  // NOTE: définir `getProperties: true` dans appel `viewerIFC.GLTF.exportIfcFileAsGltf()`
+  // ci-dessus, si l'on souhaitait réactiver le traitement des propriétés; on l'a désactivé,
+  // parce qu'on ne sait pas bien faire le lien entre le modèle GLTF et les propriétés IFC.
+  //
   // const jsonFile = result.json[0];
   // console.log(`IFCDataSource › processIFCData() › Processing property file ${jsonFile.name}…`); // DEBUG
   // var jsonObjURL = URL.createObjectURL(jsonFile);
   // const rawProps = await fetch(jsonObjURL);
   // props = await rawProps.json();
-
+  //
   // Extraction de la description du projet IFC
   // const gltfGlobalId = result.id;
   // console.log(`IFCDataSource › processIFCData() › Processing property file ${jsonFile.name} › result › GlobalId`, gltfGlobalId); // DEBUG
   // Object.keys(props).filter( key => props[key].GlobalId = gltfGlobalId && props[key].type === "IFCPROJECT").forEach(
   //   key => console.log(`IFCDataSource › processIFCData() › Processing property file ${jsonFile.name} › IFCPROJECT`, key, props[key])); // DEBUG
-
+  //
   // URL.revokeObjectURL(jsonObjURL);
 
   // Cesium fails to load the resources, if they are cleaned up at this time!
@@ -247,30 +264,27 @@ async function processIFCData(dataSource, data, options) {
 
 function dumpIfcData(data, numChars) {
   if (typeof data === "string") {
-    return `${data.slice( 0, numChars)}`
-         + ` [… snip snip …] `
-         + `${data.slice( -numChars, -1)}`;
-  } else if(data instanceof Blob) {
+    return (
+      `${data.slice(0, numChars)}` +
+      ` [… snip snip …] ` +
+      `${data.slice(-numChars, -1)}`
+    );
+  } else if (data instanceof Blob) {
     return data;
   } else {
     const unhandledTypeMsg = `'data' arg is expected to be a string or a Blob; got ${typeof data}`;
-    console.assert( typeof data === "string", unhandledTypeMsg);
+    console.assert(typeof data === "string", unhandledTypeMsg);
     return unhandledTypeMsg;
   }
 }
 
-async function loadIFC(
-  dataSource,
-  entityCollection,
-  data,
-  options
-) {
-  console.log(`IFCDataSource › loadIFC(dataSource, entityCollection, data, options):`,
-    dataSource, entityCollection, dumpIfcData(data, 25), options);
+async function loadIFC(dataSource, entityCollection, data, options) {
+  // console.log(`IFCDataSource › loadIFC(dataSource, entityCollection, data, options):`,
+  //   dataSource, entityCollection, dumpIfcData(data, 25), options);
 
   // TODO: read this from IFC data
   let name = options.sourceUri;
-  console.log(`IFCDataSource › loadIFC() › name:`, name);
+  // console.log(`IFCDataSource › loadIFC() › name:`, name);
   // Only set the name from the root document
   if (!defined(dataSource._name)) {
     dataSource._name = name;
@@ -280,7 +294,7 @@ async function loadIFC(
   entityCollection.suspendEvents();
 
   const result = await processIFCData(dataSource, data, options);
-  console.log(`IFCDataSource › loadIFC() › result:`, result);
+  // console.log(`IFCDataSource › loadIFC() › result:`, result);
 
   entityCollection.resumeEvents();
 
@@ -288,22 +302,19 @@ async function loadIFC(
 }
 
 async function load(dataSource, entityCollection, data, options) {
-  console.log(`IFCDataSource › load(dataSource, entityCollection, data, options)`,
-    dataSource, entityCollection, data, options) // DEBUG
+  // console.log(`IFCDataSource › load(dataSource, entityCollection, data, options)`,
+  //   dataSource, entityCollection, data, options) // DEBUG
 
   options = defaultValue(options, defaultValue.EMPTY_OBJECT);
 
   try {
     if (data instanceof Blob) {
-      const result = await loadIFC(
-        dataSource,
-        entityCollection,
-        data,
-        options
-      );
+      const result = await loadIFC(dataSource, entityCollection, data, options);
       return result;
     } else {
-      throw RuntimeError(`'data' is expected to be instance of a Blob; got ${typeof data}`);
+      throw RuntimeError(
+        `'data' is expected to be instance of a Blob; got ${typeof data}`
+      );
     }
   } catch (error) {
     dataSource._error.raiseEvent(dataSource, error);
@@ -556,7 +567,7 @@ Object.defineProperties(IFCDataSource.prototype, {
     get: function () {
       return this._credit;
     },
-  }
+  },
 });
 
 /**
@@ -568,7 +579,7 @@ Object.defineProperties(IFCDataSource.prototype, {
  * @returns {Promise.<IFCDataSource>} A promise that will resolve to this instances once the KML is loaded.
  */
 IFCDataSource.prototype.load = function (data, options) {
-  console.log( `IFCDataSource#.load(data, options):`, data, options)
+  // console.log( `IFCDataSource#.load(data, options):`, data, options)
 
   //>>includeStart('debug', pragmas.debug);
   if (!defined(data)) {
@@ -613,7 +624,7 @@ IFCDataSource.prototype.destroy = function () {
  * is not required to be implemented.  It is provided for data sources which
  * retrieve data based on the current animation time or scene state.
  * If implemented, update will be called by {@link DataSourceDisplay} once a frame.
-*
+ *
  * @param {JulianDate} time The simulation time.
  * @returns {Boolean} True if this data source is ready to be displayed at the provided time, false otherwise.
  */

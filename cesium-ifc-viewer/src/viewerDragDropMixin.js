@@ -9,9 +9,9 @@ import {
   GpxDataSource,
   KmlDataSource,
   wrapFunction,
-} from 'cesium';
+} from "cesium";
 
-import { default as IFCDataSource } from './IFCDataSource.js';
+import { default as IFCDataSource } from "./IFCDataSource.js";
 
 /**
  * A mixin which adds default drag and drop support for CZML files to the Viewer widget.
@@ -80,8 +80,8 @@ export function viewerDragDropMixin(viewer, options) {
   let clearOnDrop = defaultValue(options.clearOnDrop, true);
   let dropTarget = defaultValue(options.dropTarget, viewer.container);
   let clampToGround = defaultValue(options.clampToGround, true);
-  let modelOrigin = defaultValue(options.modelOrigin, [0,0,0]);
-  let modelOrientation = defaultValue(options.modelOrientation, [0,0,0]);
+  let modelOrigin = defaultValue(options.modelOrigin, [0, 0, 0]);
+  let modelOrientation = defaultValue(options.modelOrientation, [0, 0, 0]);
   let ifcBaseURL = defaultValue(options.ifcBaseURL, "");
   let proxy = options.proxy;
 
@@ -248,7 +248,15 @@ export function viewerDragDropMixin(viewer, options) {
     for (let i = 0; i < length; i++) {
       const file = files[i];
       const reader = new FileReader();
-      reader.onload = createOnLoadCallback(viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL);
+      reader.onload = createOnLoadCallback(
+        viewer,
+        file,
+        proxy,
+        clampToGround,
+        modelOrigin,
+        modelOrientation,
+        ifcBaseURL
+      );
       reader.onerror = createDropErrorCallback(viewer, file);
       reader.readAsText(file);
     }
@@ -288,9 +296,17 @@ function subscribe(dropTarget, handleDrop) {
   dropTarget.addEventListener("dragexit", stop, false);
 }
 
-function createOnLoadCallback(viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL) {
-  console.log( `viewerDragDropMixin › createOnLoadCallback(viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL): `,
-    viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL); // DEBUG
+function createOnLoadCallback(
+  viewer,
+  file,
+  proxy,
+  clampToGround,
+  modelOrigin,
+  modelOrientation,
+  ifcBaseURL
+) {
+  // console.log( `viewerDragDropMixin › createOnLoadCallback(viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL): `,
+  //   viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL); // DEBUG
 
   const scene = viewer.scene;
 
@@ -304,7 +320,7 @@ function createOnLoadCallback(viewer, file, proxy, clampToGround, modelOrigin, m
           sourceUri: fileName,
         });
       } else if (/\.ifc$/i.test(fileName)) {
-        loadPromise = IFCDataSource.load( file, {
+        loadPromise = IFCDataSource.load(file, {
           sourceUri: fileName,
           canvas: scene.canvas,
           clampToGround: clampToGround,
