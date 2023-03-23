@@ -24,7 +24,7 @@ import {
 } from "web-ifc";
 
 import {
-  buildModuleUrl,
+  // buildModuleUrl,
   Cartesian3,
   Color,
   Credit,
@@ -33,15 +33,15 @@ import {
   DeveloperError,
   Ellipsoid,
   Event,
-  JulianDate,
+  // JulianDate,
   HeadingPitchRoll,
   HeightReference,
   Math, // NOTE: overrides standard Math lib
   PinBuilder,
-  Resource,
+  // Resource,
   DataSource,
-  DataSourceClock,
-  Entity,
+  // DataSourceClock,
+  // Entity,
   EntityCluster,
   EntityCollection,
   Transforms,
@@ -158,7 +158,6 @@ async function processIFCData(dataSource, data, options) {
       IFCROOF: [IFCROOF],
       IFCTRANSPORTELEMENT: [IFCTRANSPORTELEMENT],
       IFCBEAM: [IFCBEAM],
-      IFCCOVERING: [IFCCOVERING],
     },
     getProperties: false, // NOTE: traitement des propriétés désactivé, parce qu'on ne sait pas
     getModels: true, // bien faire le lien entre le modèle GLTF et les propriétés IFC
@@ -171,7 +170,7 @@ async function processIFCData(dataSource, data, options) {
   await viewerIFC.dispose();
 
   // TODO: normaliser ces valeurs et définir valeurs par défaut
-  const [lat, long, alt] = options.modelOrigin; // [ 6.137499506, 46.192506022, 425.999 ]
+  const [lat, long, alt] = options.modelOrigin; // [ 6.137499506, 46.192506022, 425.999 ]
   const [heading, pitch, roll] = options.modelOrientation;
   const clampToGround = options.clampToGround;
 
@@ -262,21 +261,21 @@ async function processIFCData(dataSource, data, options) {
 //   return deferred.promise;
 // }
 
-function dumpIfcData(data, numChars) {
-  if (typeof data === "string") {
-    return (
-      `${data.slice(0, numChars)}` +
-      ` [… snip snip …] ` +
-      `${data.slice(-numChars, -1)}`
-    );
-  } else if (data instanceof Blob) {
-    return data;
-  } else {
-    const unhandledTypeMsg = `'data' arg is expected to be a string or a Blob; got ${typeof data}`;
-    console.assert(typeof data === "string", unhandledTypeMsg);
-    return unhandledTypeMsg;
-  }
-}
+// function dumpIfcData(data, numChars) {
+//   if (typeof data === "string") {
+//     return (
+//       `${data.slice(0, numChars)}` +
+//       ` [… snip snip …] ` +
+//       `${data.slice(-numChars, -1)}`
+//     );
+//   } else if (data instanceof Blob) {
+//     return data;
+//   } else {
+//     const unhandledTypeMsg = `'data' arg is expected to be a string or a Blob; got ${typeof data}`;
+//     console.assert(typeof data === "string", unhandledTypeMsg);
+//     return unhandledTypeMsg;
+//   }
+// }
 
 async function loadIFC(dataSource, entityCollection, data, options) {
   // console.log(`IFCDataSource › loadIFC(dataSource, entityCollection, data, options):`,
@@ -312,7 +311,7 @@ async function load(dataSource, entityCollection, data, options) {
       const result = await loadIFC(dataSource, entityCollection, data, options);
       return result;
     } else {
-      throw RuntimeError(
+      throw TypeError(
         `'data' is expected to be instance of a Blob; got ${typeof data}`
       );
     }
@@ -628,6 +627,7 @@ IFCDataSource.prototype.destroy = function () {
  * @param {JulianDate} time The simulation time.
  * @returns {Boolean} True if this data source is ready to be displayed at the provided time, false otherwise.
  */
+// eslint-disable-next-line no-unused-vars
 IFCDataSource.prototype.update = function (time) {
   return true;
 };

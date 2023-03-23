@@ -48,23 +48,23 @@ export function viewerDragDropMixin(viewer, options) {
   if (!defined(viewer)) {
     throw new DeveloperError("viewer is required.");
   }
-  if (viewer.hasOwnProperty("dropTarget")) {
+  if (Object.prototype.hasOwnProperty.call(viewer, "dropTarget")) {
     throw new DeveloperError("dropTarget is already defined by another mixin.");
   }
-  if (viewer.hasOwnProperty("dropEnabled")) {
+  if (Object.prototype.hasOwnProperty.call(viewer, "dropEnabled")) {
     throw new DeveloperError(
       "dropEnabled is already defined by another mixin."
     );
   }
-  if (viewer.hasOwnProperty("dropError")) {
+  if (Object.prototype.hasOwnProperty.call(viewer, "dropError")) {
     throw new DeveloperError("dropError is already defined by another mixin.");
   }
-  if (viewer.hasOwnProperty("clearOnDrop")) {
+  if (Object.prototype.hasOwnProperty.call(viewer, "clearOnDrop")) {
     throw new DeveloperError(
       "clearOnDrop is already defined by another mixin."
     );
   }
-  if (viewer.hasOwnProperty("flyToOnDrop")) {
+  if (Object.prototype.hasOwnProperty.call(viewer, "flyToOnDrop")) {
     throw new DeveloperError(
       "flyToOnDrop is already defined by another mixin."
     );

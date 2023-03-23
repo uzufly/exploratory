@@ -1,7 +1,7 @@
 {
   "root": true,
   "plugins": [ "custom-elements" ],
-  "extends": [ "plugin:custom-elements/recommended" ],
+  "extends": [ "eslint:recommended", "plugin:custom-elements/recommended" ],
   "env": {
     "browser": true,
     "es2022": true
