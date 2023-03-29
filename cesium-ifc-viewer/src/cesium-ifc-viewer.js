@@ -20,6 +20,7 @@ import {
   UrlTemplateImageryProvider,
   GeographicTilingScheme,
   Cartographic,
+  Cesium3DTileColorBlendMode,
   Plane,
   GeometryInstance,
   RectangleGeometry,
@@ -293,12 +294,19 @@ export class CesiumIfcViewer extends LitElement {
     });
 
     const swissTLM3D = new Cesium3DTileset({
-      url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
+      url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
       shadows: ShadowMode.DISABLED,
+      colorBlendAmount : 0,
+      colorBlendMode: Cesium3DTileColorBlendMode.REPLACE,
+      backFaceCulling: false,
     });
-
+    
     const swissTREES = new Cesium3DTileset({
       url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
+      shadows: ShadowMode.DISABLED,
+    });
+    const swissNAMES = new Cesium3DTileset({
+      url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.swissnames3d.3d/20180716/tileset.json',
       shadows: ShadowMode.DISABLED,
     });
     Promise.resolve(swissTLM3D.readyPromise).then(function(swissTLM3D) {
@@ -317,6 +325,10 @@ export class CesiumIfcViewer extends LitElement {
       );
       let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
       swissTLM3D.modelMatrix = Matrix4.fromTranslation(translation);
+      swissTLM3D.style = new Cesium3DTileStyle({
+        color: "color('white')"
+      });
+      
     })
     Promise.resolve(swissTREES.readyPromise).then(function(swissTREES) {
       
@@ -335,18 +347,30 @@ export class CesiumIfcViewer extends LitElement {
       let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
       swissTREES.modelMatrix = Matrix4.fromTranslation(translation);
     })
-
-
-
-    // socle.modelMatrix = matrix;
-    // swissTLM3D.modelMatrix = matrix;
-    // swissTREES.modelMatrix = matrix;
+    Promise.resolve(swissNAMES.readyPromise).then(function(swissNAMES) {
+      
+      let boundingSphere = swissNAMES.boundingSphere;
+      let cartographic = Cartographic.fromCartesian(boundingSphere.center);
+      let surface = Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        0.0
+      );
+      let offset = Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        50.0
+      );
+      let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
+      swissNAMES.modelMatrix = Matrix4.fromTranslation(translation);
+    })
 
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
 
     viewer.scene.primitives.add(swissTLM3D);
     viewer.scene.primitives.add(swissTREES);
+    // viewer.scene.primitives.add(swissNAMES);
     
     viewer.zoomTo(tileset);
 
