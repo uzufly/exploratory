@@ -17,7 +17,20 @@ import {
   HeightReference,
   OpenStreetMapImageryProvider,
   JulianDate,
+  UrlTemplateImageryProvider,
+  GeographicTilingScheme,
+  Cartographic,
+  Plane,
+  GeometryInstance,
+  RectangleGeometry,
+  Rectangle,
+  ColorGeometryInstanceAttribute,
+  GroundPrimitive,
+  ClippingPlaneCollection,
+  PolygonGeometry,
+  PolygonHierarchy,
 } from "cesium";
+import * as Cesium from 'cesium';
 import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
@@ -225,22 +238,31 @@ export class CesiumIfcViewer extends LitElement {
     const viewer = new Viewer(containerEl, {
       ...ourViewerOptions,
       terrainProvider: createWorldTerrain(),
+      imageryProvider: new UrlTemplateImageryProvider({
+        // Aerial image
+        //url: "//wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg",
+        // Map
+        url:
+          "https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg",
+        minimumLevel: 8,
+        maximumLevel: 17,
+        tilingScheme: new GeographicTilingScheme({
+          numberOfLevelZeroTilesX: 2,
+          numberOfLevelZeroTilesY: 1
+        }),
+        rectangle: Rectangle.fromDegrees(
+            5.013926957923385,
+            45.35600133779394,
+            11.477436312994008,
+            48.27502358353741
+          )
+      }),
+
     });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
     viewer.scene.globe.depthTestAgainstTerrain = false;
-
-    const layer = viewer.imageryLayers.addImageryProvider(
-      new OpenStreetMapImageryProvider({
-        url: "https://stamen-tiles.a.ssl.fastly.net/toner/",
-        fileExtension: "png",
-        credit:
-          "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
-      })
-    );
-
-    layer.contrast = 0.85;
 
     const dragDropMixinOptions = {
       modelOrigin: this.modelOrigin,
@@ -260,10 +282,6 @@ export class CesiumIfcViewer extends LitElement {
       maximumScreenSpaceError: 1,
     });
 
-    let translation = Cartesian3.fromArray([0.0, 0.0, 6]);
-    let matrix = Matrix4.fromTranslation(translation);
-
-    tileset.modelMatrix = matrix;
 
     tileset.style = new Cesium3DTileStyle({
       heightReference: HeightReference.CLAMP_TO_GROUND,
@@ -274,10 +292,62 @@ export class CesiumIfcViewer extends LitElement {
       shadows: ShadowMode.DISABLED,
     });
 
-    socle.modelMatrix = matrix;
+    const swissTLM3D = new Cesium3DTileset({
+      url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
+      shadows: ShadowMode.DISABLED,
+    });
+
+    const swissTREES = new Cesium3DTileset({
+      url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
+      shadows: ShadowMode.DISABLED,
+    });
+    Promise.resolve(swissTLM3D.readyPromise).then(function(swissTLM3D) {
+      
+      let boundingSphere = swissTLM3D.boundingSphere;
+      let cartographic = Cartographic.fromCartesian(boundingSphere.center);
+      let surface = Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        0.0
+      );
+      let offset = Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        50.0
+      );
+      let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
+      swissTLM3D.modelMatrix = Matrix4.fromTranslation(translation);
+    })
+    Promise.resolve(swissTREES.readyPromise).then(function(swissTREES) {
+      
+      let boundingSphere = swissTREES.boundingSphere;
+      let cartographic = Cartographic.fromCartesian(boundingSphere.center);
+      let surface = Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        0.0
+      );
+      let offset = Cartesian3.fromRadians(
+        cartographic.longitude,
+        cartographic.latitude,
+        50.0
+      );
+      let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
+      swissTREES.modelMatrix = Matrix4.fromTranslation(translation);
+    })
+
+
+
+    // socle.modelMatrix = matrix;
+    // swissTLM3D.modelMatrix = matrix;
+    // swissTREES.modelMatrix = matrix;
 
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
+
+    viewer.scene.primitives.add(swissTLM3D);
+    viewer.scene.primitives.add(swissTREES);
+    
     viewer.zoomTo(tileset);
 
     return this.modelTooltipMixin(viewer);
