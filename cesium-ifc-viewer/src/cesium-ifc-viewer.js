@@ -21,6 +21,7 @@ import {
   GeographicTilingScheme,
   Cartographic,
   Cesium3DTileColorBlendMode,
+  WebMapServiceImageryProvider,
   Plane,
   GeometryInstance,
   RectangleGeometry,
@@ -236,34 +237,42 @@ export class CesiumIfcViewer extends LitElement {
   }
 
   _createCesiumViewer(containerEl) {
-    const viewer = new Viewer(containerEl, {
-      ...ourViewerOptions,
-      terrainProvider: createWorldTerrain(),
-      imageryProvider: new UrlTemplateImageryProvider({
-        // Aerial image
-        //url: "//wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg",
-        // Map
-        url:
-          "https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg",
-        minimumLevel: 8,
-        maximumLevel: 17,
-        tilingScheme: new GeographicTilingScheme({
-          numberOfLevelZeroTilesX: 2,
-          numberOfLevelZeroTilesY: 1
+      const viewer = new Viewer(containerEl, {
+        ...ourViewerOptions,
+        terrainProvider: createWorldTerrain(),
+        imageryProvider: new UrlTemplateImageryProvider({
+          // Aerial image
+          //url: "//wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg",
+          // Map
+          url:
+          "https://wms.geo.admin.ch/?layers=ch.swisstopo-vd.amtliche-vermessung&format=image/png&service=WMS&version=1.3.0&request=GetMap&crs=CRS:84&bbox={westDegrees}%2C{southDegrees}%2C{eastDegrees}%2C{northDegrees}&width=512&height=512&styles=",
+          
+          
+          rectangle: Rectangle.fromDegrees(
+              5.013926957923385,
+              45.35600133779394,
+              11.477436312994008,
+              48.27502358353741
+            )
         }),
-        rectangle: Rectangle.fromDegrees(
-            5.013926957923385,
-            45.35600133779394,
-            11.477436312994008,
-            48.27502358353741
-          )
-      }),
 
-    });
+      });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
     viewer.scene.globe.depthTestAgainstTerrain = false;
+
+  //   const wms = new Cesium.UrlTemplateImageryProvider({
+  //     url : 'https://programs.communications.gov.au/geoserver/ows?tiled=true&' +
+  //           'transparent=true&format=image%2Fpng&exceptions=application%2Fvnd.ogc.se_xml&' +
+  //           'styles=&service=WMS&version=1.1.1&request=GetMap&' +
+  //           'layers=public%3AMyBroadband_Availability&srs=EPSG%3A3857&' +
+  //           'bbox={westProjected}%2C{southProjected}%2C{eastProjected}%2C{northProjected}&' +
+  //           'width=256&height=256',
+  //     rectangle : Cesium.Rectangle.fromDegrees(96.799393, -43.598214999057824, 153.63925700000001, -9.2159219997013)
+  //  });
+
+    // viewer.extend(Cesium.viewerCesiumInspectorMixin); 
 
     const dragDropMixinOptions = {
       modelOrigin: this.modelOrigin,
@@ -283,7 +292,6 @@ export class CesiumIfcViewer extends LitElement {
       maximumScreenSpaceError: 1,
     });
 
-
     tileset.style = new Cesium3DTileStyle({
       heightReference: HeightReference.CLAMP_TO_GROUND,
     });
@@ -300,7 +308,7 @@ export class CesiumIfcViewer extends LitElement {
       colorBlendMode: Cesium3DTileColorBlendMode.REPLACE,
       backFaceCulling: false,
     });
-    
+
     const swissTREES = new Cesium3DTileset({
       url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
       shadows: ShadowMode.DISABLED,
@@ -325,12 +333,26 @@ export class CesiumIfcViewer extends LitElement {
       );
       let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
       swissTLM3D.modelMatrix = Matrix4.fromTranslation(translation);
-      swissTLM3D.style = new Cesium3DTileStyle({
-        color: "color('white')"
-      });
+
+      // swissTLM3D.style = new Cesium.Cesium3DTileStyle({
+      //   defines: {
+      //     distance:
+      //       "distance(vec2(${feature['cesium#longitude']}, ${feature['cesium#latitude']}), vec2(144.96007, -37.82249))",
+      //   },
+      //   color: {
+      //     conditions: [
+      //       ["${distance} > 0.010", "color('#d65c5c')"],
+      //       ["${distance} > 0.006", "color('#f58971')"],
+      //       ["${distance} > 0.002", "color('#f5af71')"],
+      //       ["${distance} > 0.0001", "color('#f5ec71')"],
+      //       ["true", "color('#ffffff')"],
+      //     ],
+      //   },
+      // });
       
     })
     Promise.resolve(swissTREES.readyPromise).then(function(swissTREES) {
+      
       
       let boundingSphere = swissTREES.boundingSphere;
       let cartographic = Cartographic.fromCartesian(boundingSphere.center);
@@ -368,8 +390,8 @@ export class CesiumIfcViewer extends LitElement {
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
 
-    viewer.scene.primitives.add(swissTLM3D);
-    viewer.scene.primitives.add(swissTREES);
+    // viewer.scene.primitives.add(swissTLM3D);
+    //viewer.scene.primitives.add(swissTREES);
     // viewer.scene.primitives.add(swissNAMES);
     
     viewer.zoomTo(tileset);
