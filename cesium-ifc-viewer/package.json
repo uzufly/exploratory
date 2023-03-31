@@ -55,7 +55,6 @@
   },
   "dependencies": {
     "cesium": "^1.103.0",
-    "jquery": "^3.6.4",
     "lit": "^2.7.0",
     "web-ifc": "0.0.35",
     "web-ifc-three": "^0.0.121",
