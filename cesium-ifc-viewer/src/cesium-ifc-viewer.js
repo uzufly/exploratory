@@ -240,27 +240,60 @@ export class CesiumIfcViewer extends LitElement {
       const viewer = new Viewer(containerEl, {
         ...ourViewerOptions,
         terrainProvider: createWorldTerrain(),
-        imageryProvider: new UrlTemplateImageryProvider({
-          // Aerial image
-          //url: "//wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg",
-          // Map
-          url:
-          "https://wms.geo.admin.ch/?layers=ch.swisstopo-vd.amtliche-vermessung&format=image/png&service=WMS&version=1.3.0&request=GetMap&crs=CRS:84&bbox={westDegrees}%2C{southDegrees}%2C{eastDegrees}%2C{northDegrees}&width=512&height=512&styles=",
-          
-          
-          rectangle: Rectangle.fromDegrees(
-              5.013926957923385,
-              45.35600133779394,
-              11.477436312994008,
-              48.27502358353741
-            )
-        }),
+        // imageryProvider: new UrlTemplateImageryProvider({
+
+        //   url: "https://wms.geo.admin.ch/?" +
+        //     "layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
+        //     "transparent=true&" +
+        //     "format=image/png&" +
+        //     "service=WMS&version=1.3.0&" +
+        //     "request=GetMap&" +
+        //     "crs=CRS:84&" +
+        //     "bbox={westDegrees},{southDegrees},{eastDegrees},{northDegrees}&" +
+        //     "width=512&height=512&" +
+        //     "styles=",
+
+        //   subdomains: ['0', '1', '2', '3', '4'],
+        //   tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        //   maximumLevel: 30,
+        //   minimumLevel: 4,
+        //   pickFeaturesUrl: "https://wms.geo.admin.ch/?" +
+        //   // "layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
+        //   // "transparent=true&" +
+        //   "format=image/png&" +
+        //   "service=WMS&version=1.3.0&" +
+        //   "request=GetFeatureInfo&" +
+        //   "query_layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
+        //   "feature_count=10&" +
+        //   "info_format=text/plain&" +
+        //   "lang=fr&" +
+        //   "crs=CRS:84&" +
+        //   "bbox={westDegrees},{southDegrees},{eastDegrees},{northDegrees}&" +
+        //   "width=512&height=512&" +
+        //   "styles=",
+        //   // https://wms.geo.admin.ch/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&FORMAT=image%2Fpng&TRANSPARENT=true&QUERY_LAYERS=ch.bag.radonkarte&LAYERS=ch.bag.radonkarte&FEATURE_COUNT=10&INFO_FORMAT=text%2Fplain&LANG=de&I=50&J=50&CRS=EPSG%3A2056&STYLES=&WIDTH=101&HEIGHT=101&BBOX=2635845.3603320704%2C1167219.0985193083%2C2640895.3603320704%2C1172269.0985193083
+        //   getFeatureInfoFormats: 'text',
+        //   defaultAlpha: 0.5,
+
+        // }),
 
       });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
-    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+
+    const imageryLayers = viewer.imageryLayers;
+    imageryLayers.addImageryProvider(
+      new Cesium.WebMapServiceImageryProvider({
+        url: "https://wms.geo.admin.ch/",
+            layers: "ch.bafu.klima-co2_ausstoss_gebaeude",
+            parameters: {
+              format: "image/png",
+            },
+      })
+    );
+
 
   //   const wms = new Cesium.UrlTemplateImageryProvider({
   //     url : 'https://programs.communications.gov.au/geoserver/ows?tiled=true&' +
