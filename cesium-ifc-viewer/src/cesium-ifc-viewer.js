@@ -240,70 +240,67 @@ export class CesiumIfcViewer extends LitElement {
       const viewer = new Viewer(containerEl, {
         ...ourViewerOptions,
         terrainProvider: createWorldTerrain(),
-        // imageryProvider: new UrlTemplateImageryProvider({
+        imageryProvider: new UrlTemplateImageryProvider({
+          url: "https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg",
+          minimumLevel: 8,
+          maximumLevel: 17,
+          tilingScheme: new GeographicTilingScheme({
+            numberOfLevelZeroTilesX: 2,
+            numberOfLevelZeroTilesY: 1
+          }),
+          rectangle: Rectangle.fromDegrees(
+              5.013926957923385,
+              45.35600133779394,
+              11.477436312994008,
+              48.27502358353741
+            )
 
-        //   url: "https://wms.geo.admin.ch/?" +
-        //     "layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
-        //     "transparent=true&" +
-        //     "format=image/png&" +
-        //     "service=WMS&version=1.3.0&" +
-        //     "request=GetMap&" +
-        //     "crs=CRS:84&" +
-        //     "bbox={westDegrees},{southDegrees},{eastDegrees},{northDegrees}&" +
-        //     "width=512&height=512&" +
-        //     "styles=",
+        // //   url: "https://wms.geo.admin.ch/?" +
+        // //     "layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
+        // //     "transparent=true&" +
+        // //     "format=image/png&" +
+        // //     "service=WMS&version=1.3.0&" +
+        // //     "request=GetMap&" +
+        // //     "crs=CRS:84&" +
+        // //     "bbox={westDegrees},{southDegrees},{eastDegrees},{northDegrees}&" +
+        // //     "width=512&height=512&" +
+        // //     "styles=",
 
-        //   subdomains: ['0', '1', '2', '3', '4'],
-        //   tilingScheme: new Cesium.WebMercatorTilingScheme(),
-        //   maximumLevel: 30,
-        //   minimumLevel: 4,
-        //   pickFeaturesUrl: "https://wms.geo.admin.ch/?" +
-        //   // "layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
-        //   // "transparent=true&" +
-        //   "format=image/png&" +
-        //   "service=WMS&version=1.3.0&" +
-        //   "request=GetFeatureInfo&" +
-        //   "query_layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
-        //   "feature_count=10&" +
-        //   "info_format=text/plain&" +
-        //   "lang=fr&" +
-        //   "crs=CRS:84&" +
-        //   "bbox={westDegrees},{southDegrees},{eastDegrees},{northDegrees}&" +
-        //   "width=512&height=512&" +
-        //   "styles=",
-        //   // https://wms.geo.admin.ch/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&FORMAT=image%2Fpng&TRANSPARENT=true&QUERY_LAYERS=ch.bag.radonkarte&LAYERS=ch.bag.radonkarte&FEATURE_COUNT=10&INFO_FORMAT=text%2Fplain&LANG=de&I=50&J=50&CRS=EPSG%3A2056&STYLES=&WIDTH=101&HEIGHT=101&BBOX=2635845.3603320704%2C1167219.0985193083%2C2640895.3603320704%2C1172269.0985193083
-        //   getFeatureInfoFormats: 'text',
-        //   defaultAlpha: 0.5,
+        // //   subdomains: ['0', '1', '2', '3', '4'],
+        // //   tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        // //   maximumLevel: 30,
+        // //   minimumLevel: 4,
 
-        // }),
+        }),
 
       });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
-    viewer.scene.globe.depthTestAgainstTerrain = true;
+    // viewer.scene.globe.depthTestAgainstTerrain = true;
 
-    const imageryLayers = viewer.imageryLayers;
-    imageryLayers.addImageryProvider(
-      new Cesium.WebMapServiceImageryProvider({
-        url: "https://wms.geo.admin.ch/",
-            layers: "ch.bafu.klima-co2_ausstoss_gebaeude",
-            parameters: {
-              format: "image/png",
-            },
-      })
-    );
+    //const imageryLayers = viewer.imageryLayers;
+    // const wmtsLayer =
+    //   new Cesium.WebMapServiceImageryProvider({
+    //     url: "https://wmts.geo.admin.ch/",
+    //     layers: "ch.bfs.gebaeude_wohnungs_register_waermequelle_heizung",
+    //     style: "default",
+    //     format: "image/png",
+    //     minimumLevel: 8,
+    //     maximumLevel: 17,
+    //     tileMatrixSetID : 'EPSG:4326',
+    //     // tilingScheme: new GeographicTilingScheme({
+    //     //       numberOfLevelZeroTilesX: 2,
+    //     //       numberOfLevelZeroTilesY: 1
+    //     //     }),
+    //     // parameters: {
+    //     //   transparent : true,
+    //     //   format: "image/png",
+    //     // },
+    //     // getFeatureInfoFormats: "text/plain",
+    //   });
+    // viewer.imageryLayers.addImageryProvider(wmtsLayer);
 
-
-  //   const wms = new Cesium.UrlTemplateImageryProvider({
-  //     url : 'https://programs.communications.gov.au/geoserver/ows?tiled=true&' +
-  //           'transparent=true&format=image%2Fpng&exceptions=application%2Fvnd.ogc.se_xml&' +
-  //           'styles=&service=WMS&version=1.1.1&request=GetMap&' +
-  //           'layers=public%3AMyBroadband_Availability&srs=EPSG%3A3857&' +
-  //           'bbox={westProjected}%2C{southProjected}%2C{eastProjected}%2C{northProjected}&' +
-  //           'width=256&height=256',
-  //     rectangle : Cesium.Rectangle.fromDegrees(96.799393, -43.598214999057824, 153.63925700000001, -9.2159219997013)
-  //  });
 
     // viewer.extend(Cesium.viewerCesiumInspectorMixin); 
 
@@ -428,6 +425,84 @@ export class CesiumIfcViewer extends LitElement {
     // viewer.scene.primitives.add(swissNAMES);
     
     viewer.zoomTo(tileset);
+    // var getUrlParam = function(paramName) {
+    //   var params = window.location.search.substring(1).split('&');
+    //   for (var i = 0; i < params.length; i++) {
+    //     var param = params[i].split('=');
+    //     if (param[0] == paramName) {
+    //       return param[1];
+    //     }
+    //   }
+    // };
+    
+    
+    // We retrieve parameters from URL
+//     var SERVICE_BASE_URL = getUrlParam('base_url') || 'https://api3.geo.admin.ch/';
+//     var WMTS_BASE_URL = getUrlParam('wmts_url') || "https://wmts10.geo.admin.ch/";
+//     var config;
+//     var cadastralCfg = {
+//       attribution: "Mensuration officielle suisse / FL",
+//       timestamps: ["current"],
+//       background: false,
+//       format: "png",
+//       serverLayerName: "ch.kantone.cadastralwebmap-farbe",
+//       label: "CadastralWebMap",
+//       hasLegend: true,
+//       type: "wmts"
+//     };
+//   $.ajax({
+//     url:
+//       SERVICE_BASE_URL + "rest/services/api/MapServer/layersConfig?lang=en"
+//   }).done(function(data) {
+//     config = data;
+//     var content = "";
+//     var nbLayers = 0;
+//     var nbTimestamps = 0;
+//     data["ch.kantone.cadastralwebmap-farbe"] = cadastralCfg;
+//     data["ch.swisstopo.zeitreihen"].format = "png";
+//     $.each(data, function(layerId, layerConfig) {
+//       if (layerConfig.type == "wmts" && layerConfig.timestamps) {
+//         console.log(layerConfig)
+//         nbLayers++;
+//         nbTimestamps += layerConfig.timestamps.length;
+//         content +=
+//           "<b>" +
+//           layerConfig.label +
+//           "</b>   (" +
+//           layerConfig.serverLayerName +
+//           ")<br>" +
+//           "<b>Format: </b>" + layerConfig.format;
+//         layerConfig.timestamps.forEach(function(timestamp) {
+//           console.log(layerId)
+//           content +=
+//             '<a href="#" onclick="addLayer(\'' +
+//             layerId +
+//             "', '" +
+//             timestamp +
+//             "', '" +
+//             layerConfig.format +
+//             "')\">" +
+//             "[" +
+//             timestamp +
+//             "]" +
+//             "</a>";
+//         });
+//         content += "<br><br>";
+//       }
+//     });
+//     $("#layers")
+//       .html(
+//         "<h3>All " +
+//           nbLayers +
+//           " available layers and " +
+//           nbTimestamps +
+//           " timestamps"
+//       )
+//       .append(content);
+
+//   // Add layer from url parameters
+
+// });
 
     return this.modelTooltipMixin(viewer);
   }
