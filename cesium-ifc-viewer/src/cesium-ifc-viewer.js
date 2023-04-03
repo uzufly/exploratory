@@ -1,4 +1,5 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
+// import OLCesium from 'olcs/OLCesium.js';
 import {
   Ion,
   Viewer,
@@ -240,38 +241,22 @@ export class CesiumIfcViewer extends LitElement {
       const viewer = new Viewer(containerEl, {
         ...ourViewerOptions,
         terrainProvider: createWorldTerrain(),
-        imageryProvider: new UrlTemplateImageryProvider({
-          url: "https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg",
-          minimumLevel: 8,
-          maximumLevel: 17,
-          tilingScheme: new GeographicTilingScheme({
-            numberOfLevelZeroTilesX: 2,
-            numberOfLevelZeroTilesY: 1
-          }),
-          rectangle: Rectangle.fromDegrees(
-              5.013926957923385,
-              45.35600133779394,
-              11.477436312994008,
-              48.27502358353741
-            )
+        // imageryProvider: new UrlTemplateImageryProvider({
+        //   url: "https://wmts10.geo.admin.ch/1.0.0/ch.kantone.cadastralwebmap-farbe/default/current/4326/{z}/{x}/{y}.png",
+        //   minimumLevel: 8,
+        //   maximumLevel: 17,
+        //   tilingScheme: new GeographicTilingScheme({
+        //     numberOfLevelZeroTilesX: 2,
+        //     numberOfLevelZeroTilesY: 1
+        //   }),
+        //   rectangle: Rectangle.fromDegrees(
+        //       5.013926957923385,
+        //       45.35600133779394,
+        //       11.477436312994008,
+        //       48.27502358353741
+        //     )
 
-        // //   url: "https://wms.geo.admin.ch/?" +
-        // //     "layers=ch.bafu.klima-co2_ausstoss_gebaeude&" +
-        // //     "transparent=true&" +
-        // //     "format=image/png&" +
-        // //     "service=WMS&version=1.3.0&" +
-        // //     "request=GetMap&" +
-        // //     "crs=CRS:84&" +
-        // //     "bbox={westDegrees},{southDegrees},{eastDegrees},{northDegrees}&" +
-        // //     "width=512&height=512&" +
-        // //     "styles=",
-
-        // //   subdomains: ['0', '1', '2', '3', '4'],
-        // //   tilingScheme: new Cesium.WebMercatorTilingScheme(),
-        // //   maximumLevel: 30,
-        // //   minimumLevel: 4,
-
-        }),
+        // }),
 
       });
 
@@ -279,27 +264,86 @@ export class CesiumIfcViewer extends LitElement {
     // when they would be below the terrain surface
     // viewer.scene.globe.depthTestAgainstTerrain = true;
 
-    //const imageryLayers = viewer.imageryLayers;
-    // const wmtsLayer =
-    //   new Cesium.WebMapServiceImageryProvider({
-    //     url: "https://wmts.geo.admin.ch/",
-    //     layers: "ch.bfs.gebaeude_wohnungs_register_waermequelle_heizung",
-    //     style: "default",
-    //     format: "image/png",
-    //     minimumLevel: 8,
-    //     maximumLevel: 17,
-    //     tileMatrixSetID : 'EPSG:4326',
-    //     // tilingScheme: new GeographicTilingScheme({
-    //     //       numberOfLevelZeroTilesX: 2,
-    //     //       numberOfLevelZeroTilesY: 1
-    //     //     }),
-    //     // parameters: {
-    //     //   transparent : true,
-    //     //   format: "image/png",
-    //     // },
-    //     // getFeatureInfoFormats: "text/plain",
-    //   });
+    // const imageryLayers = viewer.imageryLayers;
+    // const imageryLayers = viewer.imageryLayers;
+    const imageryLayers = viewer.imageryLayers;
+    imageryLayers.addImageryProvider(
+      new Cesium.WebMapServiceImageryProvider({
+        url: "https://wms.geo.admin.ch/",
+          layers: "ch.bfe.windenergie-geschwindigkeit_h100",
+          parameters: {
+            transparent: true,
+            format: "image/png",
+        },
+        minimumLevel: 8,
+        maximumLevel: 17,
+        tilingScheme: new GeographicTilingScheme({
+          numberOfLevelZeroTilesX: 2,
+          numberOfLevelZeroTilesY: 1
+        }),
+        rectangle: Rectangle.fromDegrees(
+          5.013926957923385,
+          45.35600133779394,
+          11.477436312994008,
+          48.27502358353741
+        ),
+        getFeatureInfoFormats: [
+          new Cesium.GetFeatureInfoFormat(
+            "text",
+          ),
+        ],
+
+        // getFeatureInfoUrl: "https://wms.geo.admin.ch/"
+
+      })
+    );
+    
+
     // viewer.imageryLayers.addImageryProvider(wmtsLayer);
+    // const wmtsLayer =
+    //   new Cesium.UrlTemplateImageryProvider({
+    //     url: "https://wmts.geo.admin.ch/1.0.0/ch.bav.schienennetz/default/current/4326/{z}/{x}/{y}.png",
+    //     minimumLevel: 8,
+    //       maximumLevel: 17,
+    //       tilingScheme: new GeographicTilingScheme({
+    //         numberOfLevelZeroTilesX: 2,
+    //         numberOfLevelZeroTilesY: 1
+    //       }),
+    //       rectangle: Rectangle.fromDegrees(
+    //           5.013926957923385,
+    //           45.35600133779394,
+    //           11.477436312994008,
+    //           48.27502358353741
+    //         )
+    //   });
+      // const wmtsLayer2 =
+      //   new Cesium.WebMapTileServiceImageryProvider({
+      //     url: "https://wmts.geo.admin.ch/1.0.0/ch.bazl.einschraenkungen-drohnen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
+      //     layer: "ch.bazl.einschraenkungen-drohnen",
+      //     style: "default",
+      //     format: "image/png",
+      //     tileMatrixSetID: "current",
+      //     //minimumLevel: 8,
+      //     maximumLevel: 17,
+      //     // defaultAlpha: 0.5,
+      //       tilingScheme: new GeographicTilingScheme({
+      //         numberOfLevelZeroTilesX: 2,
+      //         numberOfLevelZeroTilesY: 1
+      //       }),
+      //       rectangle: Rectangle.fromDegrees(
+      //           5.013926957923385,
+      //           45.35600133779394,
+      //           11.477436312994008,
+      //           48.27502358353741
+      //         )
+      //   });
+      // const imageryLayers = viewer.imageryLayers;
+      // const layer = imageryLayers.addImageryProvider(wmtsLayer2);
+      // wmtsLayer2.readyPromise.then(function() {
+      //   layer.alpha= 0.5;
+      // });
+      
+    
 
 
     // viewer.extend(Cesium.viewerCesiumInspectorMixin); 
@@ -419,6 +463,8 @@ export class CesiumIfcViewer extends LitElement {
 
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
+    // viewer.imageryLayers.addImageryProvider(wmtsLayer2);
+    
 
     // viewer.scene.primitives.add(swissTLM3D);
     //viewer.scene.primitives.add(swissTREES);
