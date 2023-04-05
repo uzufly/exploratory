@@ -1,28 +1,39 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&family=Roboto:wght@100;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Roboto:wght@100;500&display=swap");
 *,
 ::after,
 ::before {
   box-sizing: border-box;
 }
-
 html,
 body {
   margin: 0;
   height: 100%;
 }
-
 body {
-  font-family: system-ui;
-  padding: 1rem;
+  font-family: 'Poppins', sans-serif;
 }
-
-h1,
+header {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  z-index: 1;
+  width: 100vw;
+  height: 5rem;
+}
 p {
-  margin-block-start: 0;
-  margin-block-end: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: black;
+  margin-left: 1rem;
 }
-
-custom-element {
-  background-color: aliceblue;
-  border: black solid 0.25rem;
-  padding: 1rem;
+.cesium-viewer-top-bar {
+  background-color: rgba(255,255,255,.68);
+  backdrop-filter: blur(20px);
+}
+cesium-viewer {
+  height: 100%;
+}
+cesium-viewer::part(slotted) {
+  color: white;
 }

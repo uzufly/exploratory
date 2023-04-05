@@ -133,7 +133,12 @@ export class CesiumViewer extends LitElement {
       }
       :host {
         height: 100%;
-        display: block;
+        display: flex;
+      }
+      h1,
+      p {
+        margin-block-start: 0;
+        margin-block-end: 0.5rem;
       }
       div[part="slotted"] {
 
@@ -149,15 +154,16 @@ export class CesiumViewer extends LitElement {
     super();
 
     this._viewer = null;
+
     this.cameraPosition = null;
     this.ionAccessToken = null;
     this.terrainProvider = null;
     this.imageryProvider = null;
     this.featureLayers = null;
     this.cesiumBaseURL = null;
-    this._dropError = null;
+    this.cameraAngle = null;
 
-    // Public observed properties, reflected from attribute values
+    this._dropError = null;
   }
 
   render() {
@@ -214,8 +220,6 @@ export class CesiumViewer extends LitElement {
       })
       ,
     });
-
-    console.log(this.cameraPosition);
 
     const cameraLon = this.cameraPosition[0];
     const cameraLat = this.cameraPosition[1];
