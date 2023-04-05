@@ -3,7 +3,11 @@ import {
   defined,
   Viewer,
   Ion,
+  Cartographic,
+  Math,
+  WebMapServiceImageryProvider,
   createWorldTerrain,
+  GetFeatureInfoFormat,
   UrlTemplateImageryProvider,
   GeographicTilingScheme,
   Rectangle,
@@ -13,9 +17,6 @@ import {
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
-
-const CESIUM_VERNETS_CLIPPED_ION_ASSET_ID = 1556965, // ifc-cesium-showcase-cesium-vernets-clipped
-  SOCLE_VERNETS_CNPA_ION_ASSET_ID = 1557489; // ifc-cesium-showcase-socle-vernets-CNPA-v2
 
 const ourViewerOptions = {
   animation: false,
@@ -29,7 +30,7 @@ const ourViewerOptions = {
   navigationInstructionsInitiallyVisible: false,
   navigationHelpButton: false,
   shadows: true,
-  terrainShadows: ShadowMode.ENABLED,
+  terrainShadows: ShadowMode.DISABLED,
 }
 
 /**
@@ -47,7 +48,18 @@ export class CesiumViewer extends LitElement {
      * If `null`, the default Cesium initial camera position is used.
      * @type {Array}
      */
-    // cameraPosition: { type: Array, attribute: "camera-position" },
+    cameraPosition: { type: Array, attribute: "camera-position" },
+    /**
+     * Default camera angle the viewer is greeted with.
+     * The Array is of the form `{ heading: Number, pitch: Number, roll: Number }`.
+     * If `null`, the default Cesium initial camera angle is used.
+     * @type {Array}
+     * @see https://cesium.com/docs/cesiumjs-ref-doc/Camera.html#heading
+     * @see https://cesium.com/docs/cesiumjs-ref-doc/Camera.html#pitch
+     * @see https://cesium.com/docs/cesiumjs-ref-doc/Camera.html#roll
+     * @see https://cesium.com/docs/cesiumjs-ref-doc/Camera.html#setView
+     */
+    cameraAngle: { type: Array, attribute: "camera-angle" },
     /**
      * The Cesium Ion access token to use.
      * Can be found at: https://cesium.com/ion/tokens
@@ -64,19 +76,20 @@ export class CesiumViewer extends LitElement {
      * @see https://cesium.com/docs/cesiumjs-ref-doc/TerrainProvider.html
      * @see https://cesium.com/docs/cesiumjs-ref-doc/CesiumTerrainProvider.html
      */
-    // terrainProvider: { type: Object, attribute: "terrain-provider" },
+    terrainProvider: { type: String, attribute: "terrain-provider" },
     /**
      * The imagery provider to use.
      * If `null`, the default Cesium imagery provider is used.
      * The imagery used here is considered as the base layer. Only one base layer can be used.
+     * It is preferable to use WMTS over WMS as WMTS are tiled and enhance performance.
      * If you want to add more imagery layers, use the `featureLayers` property.
-     * @type {Object}
+     * @type {String}
      * @see https://cesium.com/docs/cesiumjs-ref-doc/ImageryProvider.html
      * @see https://cesium.com/docs/cesiumjs-ref-doc/UrlTemplateImageryProvider.html
      * @see https://cesium.com/docs/cesiumjs-ref-doc/TileMapServiceImageryProvider.html
      * @see https://cesium.com/docs/cesiumjs-ref-doc/WebMapServiceImageryProvider.html
      */
-    // imageryProvider: { type: Object, attribute: "imagery-provider" },
+    imageryProvider: { type: String, attribute: "imagery-provider" },
     /**
      * The feature layers to use.
      * If `null`, no feature layers are used.
@@ -84,9 +97,9 @@ export class CesiumViewer extends LitElement {
      * WMS can be queried for more information.
      * For now, only WMS and WMTS are supported for the feature layers as they are hosted online.
      * Other feature layers, based on local data and built on vector layers, are not supported yet.
-     * @type {Array}
+     * @type {String}
      */
-    // featureLayers: { type: Array, attribute: "feature-layers" },
+    featureLayers: { type: String, attribute: "feature-layers" },
     /**
      * The URL on our server where CesiumJS's static files are hosted;
      * see https://github.com/CesiumGS/cesium/issues/8327 for some explanation.
@@ -136,11 +149,11 @@ export class CesiumViewer extends LitElement {
     super();
 
     this._viewer = null;
-    //this.cameraPosition = null;
+    this.cameraPosition = null;
     this.ionAccessToken = null;
-    //this.terrainProvider = null;
-    // this.imageryProvider = null;
-    //this.featureLayers = null;
+    this.terrainProvider = null;
+    this.imageryProvider = null;
+    this.featureLayers = null;
     this.cesiumBaseURL = null;
     this._dropError = null;
 
@@ -189,42 +202,72 @@ export class CesiumViewer extends LitElement {
     } // … more side-effects! contained at least
   }
   _createCesiumViewer(container) {
+
     const viewer = new Viewer(container, {
       ...ourViewerOptions,
-      terrainProvider: createWorldTerrain(),
+      terrainProvider: new CesiumTerrainProvider({
+        url: this.terrainProvider,
+      }),
       // cameraPosition: this.cameraPosition,
-      // imageryProvider: 
-      //   new UrlTemplateImageryProvider({
-      //   // Aerial image
-      //   //url: "//wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg",
-      //   // Map
-      //   url:
-      //   "https://wmts100.geo.admin.ch/1.0.0/ch.are.bauzonen/default/current/4326/{z}/{x}/{y}.png",
-      //   minimumLevel: 8,
-      //   maximumLevel: 17,
-      //   tilingScheme: new GeographicTilingScheme({
-      //     numberOfLevelZeroTilesX: 2,
-      //     numberOfLevelZeroTilesY: 1
-      //   }),
-      //   rectangle: Rectangle.fromDegrees(
-      //       5.013926957923385,
-      //       45.35600133779394,
-      //       11.477436312994008,
-      //       48.27502358353741
-      //     )
-      // }),
-      // terrainProvider: new CesiumTerrainProvider({
-      //   url: this.terrainProvider,
-      // }),
-      // cameraPosition: this.cameraPosition,
+      imageryProvider: new UrlTemplateImageryProvider({
+        url: this.imageryProvider
+      })
+      ,
     });
 
+    console.log(this.cameraPosition);
 
+    const cameraLon = this.cameraPosition[0];
+    const cameraLat = this.cameraPosition[1];
+    const cameraHeight = this.cameraPosition[2];
 
+    const cameraHeading = this.cameraAngle[0];
+    const cameraPitch = this.cameraAngle[1];
+    const cameraRoll = this.cameraAngle[2];
     
+    viewer.camera.setView({
+      destination: Cartographic.toCartesian(Cartographic.fromDegrees(cameraLon, cameraLat, cameraHeight)),
+      orientation: {
+        heading: Math.toRadians(cameraHeading),
+        pitch: Math.toRadians(cameraPitch),
+        roll: Math.toRadians(cameraRoll),
+      }
+    });
+
+    // console.log(JSON.stringify([...this.featureLayers[0]]))
+
+    // const imageryLayers = viewer.imageryLayers;
+    // imageryLayers.addImageryProvider(
+    //   new WebMapServiceImageryProvider({
+    //     url: "https://wms.geo.admin.ch/",
+    //     layers: this.featureLayers[0],
+    //     parameters: {
+    //       format: "image/png",
+    //     },
+    //     minimumLevel: 8,
+    //     maximumLevel: 17,
+    //     tilingScheme: new GeographicTilingScheme({
+    //       numberOfLevelZeroTilesX: 2,
+    //       numberOfLevelZeroTilesY: 1
+    //     }),
+    //     rectangle: Rectangle.fromDegrees(
+    //       5.013926957923385,
+    //       45.35600133779394,
+    //       11.477436312994008,
+    //       48.27502358353741
+    //     ),
+    //     getFeatureInfoFormats: [
+    //       new GetFeatureInfoFormat(
+    //         "text",
+    //       ),
+    //     ],
+    //   })
+    // );
 
     // if (this.featureLayers) {
+    //   console.log('coucou')
     //   this.featureLayers.forEach((layer) => {
+    //     console.log('coucou')
     //     viewer.imageryLayers.add(layer);
     //   });
     // }
