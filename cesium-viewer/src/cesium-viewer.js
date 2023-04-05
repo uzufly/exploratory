@@ -5,6 +5,7 @@ import {
   Ion,
   Cartographic,
   Math,
+  Cesium3DTileset,
   WebMapServiceImageryProvider,
   createWorldTerrain,
   GetFeatureInfoFormat,
@@ -48,7 +49,7 @@ export class CesiumViewer extends LitElement {
      * If `null`, the default Cesium initial camera position is used.
      * @type {Array}
      */
-    cameraPosition: { type: Array, attribute: "camera-position" },
+    cameraPosition: { type: Array, attribute: "camera-position", reflect: true },
     /**
      * Default camera angle the viewer is greeted with.
      * The Array is of the form `{ heading: Number, pitch: Number, roll: Number }`.
@@ -70,13 +71,14 @@ export class CesiumViewer extends LitElement {
      */
     ionAccessToken: { type: String, attribute: "ion-access-token" },
     /**
-     * The terrain provider to use.
-     * If `null`, the default Cesium terrain provider is used.
-     * @type {string}
+     * Uses the swisstopo terrain provider. If you add the attribute `swiss-terrain` to the element, it will be set to true.
+     * If you don't add the attribute, it will be set to false and the layer will not be displayed. It
+     * will use the default Cesium terrain provider instead.
+     * @type {Boolean}
      * @see https://cesium.com/docs/cesiumjs-ref-doc/TerrainProvider.html
      * @see https://cesium.com/docs/cesiumjs-ref-doc/CesiumTerrainProvider.html
      */
-    terrainProvider: { type: String, attribute: "terrain-provider" },
+    swissTerrainProvider: { type: Boolean, attribute: "swiss-terrain" },
     /**
      * The imagery provider to use.
      * If `null`, the default Cesium imagery provider is used.
@@ -100,6 +102,22 @@ export class CesiumViewer extends LitElement {
      * @type {String}
      */
     featureLayers: { type: String, attribute: "feature-layers" },
+    /** 
+     * Can toggle on and off the swiss buildings (swissTLM3D)
+     * If you add the attribute `swiss-buildings` to the element, it will be set to true.
+     * If you don't add the attribute, it will be set to false and the layer will not be displayed.
+     * @type {Boolean}
+     * 
+     */
+    swissBuildings: { type: Boolean, attribute: "swiss-buildings" },
+    /**
+     * Can toggle on and off the swiss trees
+     * If you add the attribute `swiss-trees` to the element, it will be set to true.
+     * If you don't add the attribute, it will be set to false and the layer will not be displayed.
+     * @type {Boolean}
+     * 
+     */
+    swissTrees: { type: Boolean, attribute: "swiss-trees" },
     /**
      * The URL on our server where CesiumJS's static files are hosted;
      * see https://github.com/CesiumGS/cesium/issues/8327 for some explanation.
@@ -157,11 +175,13 @@ export class CesiumViewer extends LitElement {
 
     this.cameraPosition = null;
     this.ionAccessToken = null;
-    this.terrainProvider = null;
+    this.swissTerrainProvider = false;
     this.imageryProvider = null;
     this.featureLayers = null;
     this.cesiumBaseURL = null;
     this.cameraAngle = null;
+    this.swissBuildings = false;
+    this.swissTrees = false;
 
     this._dropError = null;
   }
@@ -208,26 +228,28 @@ export class CesiumViewer extends LitElement {
     } // … more side-effects! contained at least
   }
   _createCesiumViewer(container) {
+    
+    let terrainProvider;
+    if (this.swissTerrainProvider == true) {
+      terrainProvider = new CesiumTerrainProvider({
+        url: "https://3d.geo.admin.ch/1.0.0/ch.swisstopo.terrain.3d/default/20160115/4326/"
+      });
+    }
 
     const viewer = new Viewer(container, {
       ...ourViewerOptions,
-      terrainProvider: new CesiumTerrainProvider({
-        url: this.terrainProvider,
-      }),
       // cameraPosition: this.cameraPosition,
+      terrainProvider: terrainProvider,
       imageryProvider: new UrlTemplateImageryProvider({
         url: this.imageryProvider
       })
       ,
     });
+  
 
-    const cameraLon = this.cameraPosition[0];
-    const cameraLat = this.cameraPosition[1];
-    const cameraHeight = this.cameraPosition[2];
-
-    const cameraHeading = this.cameraAngle[0];
-    const cameraPitch = this.cameraAngle[1];
-    const cameraRoll = this.cameraAngle[2];
+    const [cameraLon, cameraLat, cameraHeight] = this.cameraPosition;
+    const [cameraHeading, cameraPitch, cameraRoll] = this.cameraAngle;
+    console.log(cameraLon, cameraLat, cameraHeight)
     
     viewer.camera.setView({
       destination: Cartographic.toCartesian(Cartographic.fromDegrees(cameraLon, cameraLat, cameraHeight)),
@@ -237,6 +259,27 @@ export class CesiumViewer extends LitElement {
         roll: Math.toRadians(cameraRoll),
       }
     });
+
+    const swissTLM3D = new Cesium3DTileset({
+      url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
+      shadows: ShadowMode.DISABLED,
+      // colorBlendAmount : 0,
+      // colorBlendMode: Cesium3DTileColorBlendMode.REPLACE,
+      // backFaceCulling: false,
+    });
+    const swissTREES = new Cesium3DTileset({
+      url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
+      shadows: ShadowMode.DISABLED,
+    });
+
+    console.log(this.swissBuildings)
+    if (this.swissBuildings === true) { 
+      viewer.scene.primitives.add(swissTLM3D);
+    }
+    if (this.swissTrees === true) { 
+      viewer.scene.primitives.add(swissTREES);
+    }
+
 
     // console.log(JSON.stringify([...this.featureLayers[0]]))
 
