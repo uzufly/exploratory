@@ -230,7 +230,7 @@ export class CesiumViewer extends LitElement {
   _createCesiumViewer(container) {
     
     let terrainProvider;
-    if (this.swissTerrainProvider == true) {
+    if (this.swissTerrainProvider) {
       terrainProvider = new CesiumTerrainProvider({
         url: "https://3d.geo.admin.ch/1.0.0/ch.swisstopo.terrain.3d/default/20160115/4326/"
       });
@@ -242,11 +242,10 @@ export class CesiumViewer extends LitElement {
       terrainProvider: terrainProvider,
       imageryProvider: new UrlTemplateImageryProvider({
         url: this.imageryProvider
-      })
-      ,
+      }),
     });
+    viewer.scene.globe.depthTestAgainstTerrain = true;
   
-
     const [cameraLon, cameraLat, cameraHeight] = this.cameraPosition;
     const [cameraHeading, cameraPitch, cameraRoll] = this.cameraAngle;
     console.log(cameraLon, cameraLat, cameraHeight)
@@ -273,14 +272,12 @@ export class CesiumViewer extends LitElement {
     });
 
     console.log(this.swissBuildings)
-    if (this.swissBuildings === true) { 
+    if (this.swissBuildings) { 
       viewer.scene.primitives.add(swissTLM3D);
     }
-    if (this.swissTrees === true) { 
+    if (this.swissTrees) { 
       viewer.scene.primitives.add(swissTREES);
     }
-
-
     // console.log(JSON.stringify([...this.featureLayers[0]]))
 
     // const imageryLayers = viewer.imageryLayers;
