@@ -1,0 +1,22 @@
+{
+  "root": true,
+  "plugins": [ "custom-elements" ],
+  "extends": [ "eslint:recommended", "plugin:custom-elements/recommended" ],
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022
+  },
+  "rules": {
+    "no-console": [ "error", { "allow": [ "assert", "warn", "error" ] } ],
+    "custom-elements/file-name-matches-element": [ "error", { "suffix": "Element" } ],
+    "custom-elements/tag-name-matches-class": [ "error", { "suffix": "Element" } ],
+    "custom-elements/extends-correct-class": [ "error", { "allowedSuperNames": [ "HTMLElement", "LitElement" ] } ]
+  },
+  "globals": {
+    "CustomElementElement": "readonly"
+  },
+  "ignorePatterns": [ ".parcel-cache", "dist" ]
+}
