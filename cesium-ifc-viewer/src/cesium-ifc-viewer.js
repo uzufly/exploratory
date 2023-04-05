@@ -240,25 +240,13 @@ export class CesiumIfcViewer extends LitElement {
   _createCesiumViewer(containerEl) {
       const viewer = new Viewer(containerEl, {
         ...ourViewerOptions,
-        terrainProvider: createWorldTerrain(),
-        // imageryProvider: new UrlTemplateImageryProvider({
-        //   url: "https://wmts10.geo.admin.ch/1.0.0/ch.kantone.cadastralwebmap-farbe/default/current/4326/{z}/{x}/{y}.png",
-        //   minimumLevel: 8,
-        //   maximumLevel: 17,
-        //   tilingScheme: new GeographicTilingScheme({
-        //     numberOfLevelZeroTilesX: 2,
-        //     numberOfLevelZeroTilesY: 1
-        //   }),
-        //   rectangle: Rectangle.fromDegrees(
-        //       5.013926957923385,
-        //       45.35600133779394,
-        //       11.477436312994008,
-        //       48.27502358353741
-        //     )
+        terrainProvider: new Cesium.CesiumTerrainProvider({
+          url:
+            "https://3d.geo.admin.ch/1.0.0/ch.swisstopo.terrain.3d/default/20160115/4326/"
+        }),
+        imageryProvider: new OpenStreetMapImageryProvider()
 
-        // }),
-
-      });
+        });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
@@ -267,12 +255,12 @@ export class CesiumIfcViewer extends LitElement {
     // const imageryLayers = viewer.imageryLayers;
     // const imageryLayers = viewer.imageryLayers;
     const imageryLayers = viewer.imageryLayers;
-    imageryLayers.addImageryProvider(
+    const wmsLayer = 
       new Cesium.WebMapServiceImageryProvider({
-        url: "https://wms.geo.admin.ch/",
-          layers: "ch.bfe.windenergie-geschwindigkeit_h100",
+        url: "https://geodienste.ch/db/av_0/fra",
+          layers: "Aggregierte_Amtliche_Vermessung",
           parameters: {
-            transparent: true,
+            // transparent: true,
             format: "image/png",
         },
         minimumLevel: 8,
@@ -296,7 +284,31 @@ export class CesiumIfcViewer extends LitElement {
         // getFeatureInfoUrl: "https://wms.geo.admin.ch/"
 
       })
-    );
+
+      const layer = imageryLayers.addImageryProvider(wmsLayer);
+      wmsLayer.readyPromise.then(function() {
+        layer.alpha = 0.5;
+      });
+      // let dataSource = new Cesium.GeoJsonDataSource();
+      // viewer.dataSources.add(dataSource);
+      // dataSource.load('https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometryType=esriGeometryEnvelope&geometry=548945.5,147956,549402,148103.5&imageDisplay=500,600,96&mapExtent=548945.5,147956,549402,148103.5&tolerance=1&layers=all:ch.bfs.arealstatistik&geometryFormat=geojson'
+      // ).then(function() {
+      //   handler.setInputAction(function(movement) {
+      //     let pickedObject = viewer.scene.pick(movement.position);
+      //     if (Cesium.defined(pickedObject)) {
+      //       let feature = pickedObject.id;
+      //       console.log(feature);
+      //     }
+      // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      // });
+      const tileset2 = viewer.scene.primitives.add(
+        new Cesium.Cesium3DTileset({
+          url: Cesium.IonResource.fromAssetId(96188),
+        })
+      );
+      
+    
+
     
 
     // viewer.imageryLayers.addImageryProvider(wmtsLayer);
@@ -391,40 +403,40 @@ export class CesiumIfcViewer extends LitElement {
       url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.swissnames3d.3d/20180716/tileset.json',
       shadows: ShadowMode.DISABLED,
     });
-    Promise.resolve(swissTLM3D.readyPromise).then(function(swissTLM3D) {
+    // Promise.resolve(swissTLM3D.readyPromise).then(function(swissTLM3D) {
       
-      let boundingSphere = swissTLM3D.boundingSphere;
-      let cartographic = Cartographic.fromCartesian(boundingSphere.center);
-      let surface = Cartesian3.fromRadians(
-        cartographic.longitude,
-        cartographic.latitude,
-        0.0
-      );
-      let offset = Cartesian3.fromRadians(
-        cartographic.longitude,
-        cartographic.latitude,
-        50.0
-      );
-      let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
-      swissTLM3D.modelMatrix = Matrix4.fromTranslation(translation);
+    //   let boundingSphere = swissTLM3D.boundingSphere;
+    //   let cartographic = Cartographic.fromCartesian(boundingSphere.center);
+    //   let surface = Cartesian3.fromRadians(
+    //     cartographic.longitude,
+    //     cartographic.latitude,
+    //     0.0
+    //   );
+    //   let offset = Cartesian3.fromRadians(
+    //     cartographic.longitude,
+    //     cartographic.latitude,
+    //     50.0
+    //   );
+    //   let translation = Cartesian3.subtract(offset, surface, new Cartesian3());
+    //   swissTLM3D.modelMatrix = Matrix4.fromTranslation(translation);
 
-      // swissTLM3D.style = new Cesium.Cesium3DTileStyle({
-      //   defines: {
-      //     distance:
-      //       "distance(vec2(${feature['cesium#longitude']}, ${feature['cesium#latitude']}), vec2(144.96007, -37.82249))",
-      //   },
-      //   color: {
-      //     conditions: [
-      //       ["${distance} > 0.010", "color('#d65c5c')"],
-      //       ["${distance} > 0.006", "color('#f58971')"],
-      //       ["${distance} > 0.002", "color('#f5af71')"],
-      //       ["${distance} > 0.0001", "color('#f5ec71')"],
-      //       ["true", "color('#ffffff')"],
-      //     ],
-      //   },
-      // });
+    //   // swissTLM3D.style = new Cesium.Cesium3DTileStyle({
+    //   //   defines: {
+    //   //     distance:
+    //   //       "distance(vec2(${feature['cesium#longitude']}, ${feature['cesium#latitude']}), vec2(144.96007, -37.82249))",
+    //   //   },
+    //   //   color: {
+    //   //     conditions: [
+    //   //       ["${distance} > 0.010", "color('#d65c5c')"],
+    //   //       ["${distance} > 0.006", "color('#f58971')"],
+    //   //       ["${distance} > 0.002", "color('#f5af71')"],
+    //   //       ["${distance} > 0.0001", "color('#f5ec71')"],
+    //   //       ["true", "color('#ffffff')"],
+    //   //     ],
+    //   //   },
+    //   // });
       
-    })
+    // })
     Promise.resolve(swissTREES.readyPromise).then(function(swissTREES) {
       
       
@@ -471,82 +483,6 @@ export class CesiumIfcViewer extends LitElement {
     // viewer.scene.primitives.add(swissNAMES);
     
     viewer.zoomTo(tileset);
-    // var getUrlParam = function(paramName) {
-    //   var params = window.location.search.substring(1).split('&');
-    //   for (var i = 0; i < params.length; i++) {
-    //     var param = params[i].split('=');
-    //     if (param[0] == paramName) {
-    //       return param[1];
-    //     }
-    //   }
-    // };
-    
-    
-    // We retrieve parameters from URL
-//     var SERVICE_BASE_URL = getUrlParam('base_url') || 'https://api3.geo.admin.ch/';
-//     var WMTS_BASE_URL = getUrlParam('wmts_url') || "https://wmts10.geo.admin.ch/";
-//     var config;
-//     var cadastralCfg = {
-//       attribution: "Mensuration officielle suisse / FL",
-//       timestamps: ["current"],
-//       background: false,
-//       format: "png",
-//       serverLayerName: "ch.kantone.cadastralwebmap-farbe",
-//       label: "CadastralWebMap",
-//       hasLegend: true,
-//       type: "wmts"
-//     };
-//   $.ajax({
-//     url:
-//       SERVICE_BASE_URL + "rest/services/api/MapServer/layersConfig?lang=en"
-//   }).done(function(data) {
-//     config = data;
-//     var content = "";
-//     var nbLayers = 0;
-//     var nbTimestamps = 0;
-//     data["ch.kantone.cadastralwebmap-farbe"] = cadastralCfg;
-//     data["ch.swisstopo.zeitreihen"].format = "png";
-//     $.each(data, function(layerId, layerConfig) {
-//       if (layerConfig.type == "wmts" && layerConfig.timestamps) {
-//         console.log(layerConfig)
-//         nbLayers++;
-//         nbTimestamps += layerConfig.timestamps.length;
-//         content +=
-//           "<b>" +
-//           layerConfig.label +
-//           "</b>   (" +
-//           layerConfig.serverLayerName +
-//           ")<br>" +
-//           "<b>Format: </b>" + layerConfig.format;
-//         layerConfig.timestamps.forEach(function(timestamp) {
-//           console.log(layerId)
-//           content +=
-//             '<a href="#" onclick="addLayer(\'' +
-//             layerId +
-//             "', '" +
-//             timestamp +
-//             "', '" +
-//             layerConfig.format +
-//             "')\">" +
-//             "[" +
-//             timestamp +
-//             "]" +
-//             "</a>";
-//         });
-//         content += "<br><br>";
-//       }
-//     });
-//     $("#layers")
-//       .html(
-//         "<h3>All " +
-//           nbLayers +
-//           " available layers and " +
-//           nbTimestamps +
-//           " timestamps"
-//       )
-//       .append(content);
-
-//   // Add layer from url parameters
 
 // });
 
