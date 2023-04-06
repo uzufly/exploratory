@@ -6,6 +6,7 @@ import {
   Cartographic,
   Math,
   Cesium3DTileset,
+  Cartesian3,
   WebMapServiceImageryProvider,
   createWorldTerrain,
   GetFeatureInfoFormat,
@@ -248,10 +249,11 @@ export class CesiumViewer extends LitElement {
   
     const [cameraLon, cameraLat, cameraHeight] = this.cameraPosition;
     const [cameraHeading, cameraPitch, cameraRoll] = this.cameraAngle;
-    console.log(cameraLon, cameraLat, cameraHeight)
+
+    const cameraPosition = new Cartesian3.fromDegrees(cameraLon, cameraLat, cameraHeight);
     
     viewer.camera.setView({
-      destination: Cartographic.toCartesian(Cartographic.fromDegrees(cameraLon, cameraLat, cameraHeight)),
+      destination: cameraPosition,
       orientation: {
         heading: Math.toRadians(cameraHeading),
         pitch: Math.toRadians(cameraPitch),
