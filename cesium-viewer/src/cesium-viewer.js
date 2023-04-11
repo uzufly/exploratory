@@ -98,6 +98,16 @@ export class CesiumViewer extends LitElement {
     /**
      * The feature layers to use.
      * If `null`, no feature layers are used.
+     * The format of the array is as follows:
+     * 
+     * [
+     *  {
+     *  type: "WMS", // or "WMTS"
+     *  layer: "ch.swisstopo.swisstlm3d-wald",
+     *  // OPTIONAL
+     *  format: "image/jpeg", // default is "image/png, has to be defined if format is JPEG"
+     *  timestamp: "2019", // default is "current"
+     *  
      * Multiple feature layers (or none) can be used. It is preferable to use WMS over WMTS as
      * WMS can be queried for more information.
      * For now, only WMS and WMTS are supported for the feature layers as they are hosted online.
@@ -299,16 +309,24 @@ export class CesiumViewer extends LitElement {
     console.log(this.featureLayers)
     const featureLayerArrayLenght = this.featureLayers.length;
     const imageryLayers = viewer.imageryLayers;
+    let imageryFormat = "image/png";
+    let imageryTimestamp = "current";
 
     for (let i = 0; i < featureLayerArrayLenght; i++) {
-      if (this.featureLayers[i].format === "WMS" | this.featureLayers[i].format === "wms") {
+      if (this.featureLayers[i].format && this.featureLayers[i].format !== "image/png") {
+        imageryFormat = this.featureLayers[i].format
+      }
+      if (this.featureLayers[i].timestamp && this.featureLayers[i].timestamp !== "current") {
+        imageryTimestamp = this.featureLayers[i].timestamp
+      }
+      if (this.featureLayers[i].type === "WMS" | this.featureLayers[i].type === "wms") {
 
         const wmsFeatureLayer =
           new WebMapServiceImageryProvider({
             url: "https://wms.geo.admin.ch/",
             layers: this.featureLayers[i].src,
               parameters: {
-                format: "image/png",
+                format: imageryFormat,
                 transparent: true,
             },
             minimumLevel: 8,
@@ -332,14 +350,14 @@ export class CesiumViewer extends LitElement {
         //const imageryLayers = viewer.imageryLayers;
         imageryLayers.addImageryProvider(wmsFeatureLayer);
 
-      } else if (this.featureLayers[i].format === "WMTS" | this.featureLayers[i].format === "wmts") {
+      } else if (this.featureLayers[i].type === "WMTS" | this.featureLayers[i].type === "wmts") {
         const wmtsFeatureLayer =
         new WebMapTileServiceImageryProvider({
           url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers[i].src}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
           layer: this.featureLayers[i].src,
           style: "default",
-          format: "image/png",
-          tileMatrixSetID: "current",
+          format: imageryFormat,
+          tileMatrixSetID: imageryTimestamp,
           maximumLevel: 17,
           tilingScheme: new GeographicTilingScheme({
             numberOfLevelZeroTilesX: 2,
@@ -363,9 +381,7 @@ export class CesiumViewer extends LitElement {
       style: "default",
       format: "image/png",
       tileMatrixSetID: "current",
-      //minimumLevel: 8,
       maximumLevel: 17,
-      // defaultAlpha: 0.5,
       tilingScheme: new GeographicTilingScheme({
         numberOfLevelZeroTilesX: 2,
         numberOfLevelZeroTilesY: 1
@@ -377,7 +393,7 @@ export class CesiumViewer extends LitElement {
         48.27502358353741
       )
     });
-    
+
     imageryLayers.addImageryProvider(wmtsLayer2);
 
     return viewer;
