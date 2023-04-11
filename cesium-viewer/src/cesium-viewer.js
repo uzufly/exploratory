@@ -208,18 +208,6 @@ export class CesiumViewer extends LitElement {
       <blockquote><code>${error}</code></blockquote>
     </div>`;
   }
-  // connectedCallback() {
-  //   super.connectedCallback();
-  //   const layers = this.getAttribute("feature-layers");
-  //   CesiumViewer._setCesiumGlobalConfig(
-      
-  //       this.featureLayers = JSON.parse(layers),
-  //       // console.log("featureLayers", this.featureLayers)
-
-  //       this._createCesiumViewer(this.featureLayers)
-  //   )
-    
-  // }
   _dropErrorHandler(viewerArg, source, error) {
     this._dropError = { source, error };
     // viewerArg is unused
@@ -244,7 +232,7 @@ export class CesiumViewer extends LitElement {
       Ion.defaultAccessToken = ionAccessToken;
     } // … more side-effects! contained at least
   }
-  _createCesiumViewer(container, featureLayers) {
+  _createCesiumViewer(container) {
     
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -308,21 +296,50 @@ export class CesiumViewer extends LitElement {
     
     const layers = this.getAttribute("feature-layers");
     this.featureLayers = JSON.parse(layers);
+    console.log(this.featureLayers)
     const featureLayerArrayLenght = this.featureLayers.length;
+    const imageryLayers = viewer.imageryLayers;
 
     for (let i = 0; i < featureLayerArrayLenght; i++) {
-      const featureLayer = this.featureLayers[i];
-      console.log(featureLayer)
-      const image = viewer.imageryLayers;
-      image.addImageryProvider(
-        new WebMapServiceImageryProvider({
-          url: "https://wms.geo.admin.ch/",
-          layers: featureLayer,
-            parameters: {
-              format: "image/png",
-              transparent: true,
-          },
-          minimumLevel: 8,
+      if (this.featureLayers[i].format === "WMS" | this.featureLayers[i].format === "wms") {
+
+        const wmsFeatureLayer =
+          new WebMapServiceImageryProvider({
+            url: "https://wms.geo.admin.ch/",
+            layers: this.featureLayers[i].src,
+              parameters: {
+                format: "image/png",
+                transparent: true,
+            },
+            minimumLevel: 8,
+            maximumLevel: 17,
+            tilingScheme: new GeographicTilingScheme({
+              numberOfLevelZeroTilesX: 2,
+              numberOfLevelZeroTilesY: 1
+            }),
+            rectangle: Rectangle.fromDegrees(
+              5.013926957923385,
+              45.35600133779394,
+              11.477436312994008,
+              48.27502358353741
+            ),
+            getFeatureInfoFormats: [
+              new GetFeatureInfoFormat(
+                "text",
+              ),
+            ],
+          });
+        //const imageryLayers = viewer.imageryLayers;
+        imageryLayers.addImageryProvider(wmsFeatureLayer);
+
+      } else if (this.featureLayers[i].format === "WMTS" | this.featureLayers[i].format === "wmts") {
+        const wmtsFeatureLayer =
+        new WebMapTileServiceImageryProvider({
+          url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers[i].src}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
+          layer: this.featureLayers[i].src,
+          style: "default",
+          format: "image/png",
+          tileMatrixSetID: "current",
           maximumLevel: 17,
           tilingScheme: new GeographicTilingScheme({
             numberOfLevelZeroTilesX: 2,
@@ -333,42 +350,35 @@ export class CesiumViewer extends LitElement {
             45.35600133779394,
             11.477436312994008,
             48.27502358353741
-          ),
-          getFeatureInfoFormats: [
-            new GetFeatureInfoFormat(
-              "text",
-            ),
-          ],
-        })
-      );
+          )
+        });
+        imageryLayers.addImageryProvider(wmtsFeatureLayer);
+      }
     }
 
     const wmtsLayer2 =
-        new WebMapTileServiceImageryProvider({
-          url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
-          layer: "ch.swisstopo.swisstlm3d-strassen",
-          style: "default",
-          format: "image/png",
-          tileMatrixSetID: "current",
-          //minimumLevel: 8,
-          maximumLevel: 17,
-          // defaultAlpha: 0.5,
-            tilingScheme: new GeographicTilingScheme({
-              numberOfLevelZeroTilesX: 2,
-              numberOfLevelZeroTilesY: 1
-            }),
-            rectangle: Rectangle.fromDegrees(
-                5.013926957923385,
-                45.35600133779394,
-                11.477436312994008,
-                48.27502358353741
-              )
-        });
-      const imageryLayers = viewer.imageryLayers;
-      const layer = imageryLayers.addImageryProvider(wmtsLayer2);
-      // wmtsLayer2.readyPromise.then(function() {
-      //   layer.alpha= 0.5;
-      // });
+    new WebMapTileServiceImageryProvider({
+      url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
+      layer: "ch.swisstopo.swisstlm3d-strassen",
+      style: "default",
+      format: "image/png",
+      tileMatrixSetID: "current",
+      //minimumLevel: 8,
+      maximumLevel: 17,
+      // defaultAlpha: 0.5,
+      tilingScheme: new GeographicTilingScheme({
+        numberOfLevelZeroTilesX: 2,
+        numberOfLevelZeroTilesY: 1
+      }),
+      rectangle: Rectangle.fromDegrees(
+        5.013926957923385,
+        45.35600133779394,
+        11.477436312994008,
+        48.27502358353741
+      )
+    });
+    
+    imageryLayers.addImageryProvider(wmtsLayer2);
 
     return viewer;
   }

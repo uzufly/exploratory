@@ -14,7 +14,10 @@
       swiss-terrain
       swiss-buildings
       swiss-trees
-      feature-layers='["ch.astra.mountainbikeland"]'
+      feature-layers='[
+        {"src": "ch.astra.mountainbikeland","format": "WMS"},
+        {"src": "ch.swisstopo.swisstlm3d-wald", "format": "WMTS"}
+        ]'
       camera-position="[6.137499506, 46.192506022, 800]"
       camera-angle="[10, -35, 0]"
       cesium-base-url="/static/"
