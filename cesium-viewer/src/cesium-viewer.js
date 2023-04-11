@@ -100,9 +100,9 @@ export class CesiumViewer extends LitElement {
      * WMS can be queried for more information.
      * For now, only WMS and WMTS are supported for the feature layers as they are hosted online.
      * Other feature layers, based on local data and built on vector layers, are not supported yet.
-     * @type {String}
+     * @type {Array}
      */
-    featureLayers: { type: String, attribute: "feature-layers" },
+    featureLayers: { type: Array, attribute: "feature-layers" },
     /** 
      * Can toggle on and off the swiss buildings (swissTLM3D)
      * If you add the attribute `swiss-buildings` to the element, it will be set to true.
@@ -178,7 +178,7 @@ export class CesiumViewer extends LitElement {
     this.ionAccessToken = null;
     this.swissTerrainProvider = false;
     this.imageryProvider = null;
-    this.featureLayers = null;
+    this.featureLayers = [];
     this.cesiumBaseURL = null;
     this.cameraAngle = null;
     this.swissBuildings = false;
@@ -188,11 +188,13 @@ export class CesiumViewer extends LitElement {
   }
 
   render() {
-    return [this.renderSlotted(), this.renderDropErrorIfAny()];
+    return [
+      this.renderSlotted(), this.renderDropErrorIfAny()];
   }
 
   renderSlotted() {
-    return html`<div part="slotted"><slot></slot></div>`;
+    return html`
+      <div part="slotted"><slot></slot></div>`;
   }
   renderDropErrorIfAny() {
     if (!this._dropError) return;
@@ -203,6 +205,16 @@ export class CesiumViewer extends LitElement {
       </p>
       <blockquote><code>${error}</code></blockquote>
     </div>`;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    const layers = this.getAttribute("feature-layers");
+    if (layers) {
+      this.featureLayers = JSON.parse(layers);
+      this._createCesiumViewer(this.featureLayers);
+
+    }
+    
   }
   _dropErrorHandler(viewerArg, source, error) {
     this._dropError = { source, error };
@@ -228,7 +240,9 @@ export class CesiumViewer extends LitElement {
       Ion.defaultAccessToken = ionAccessToken;
     } // … more side-effects! contained at least
   }
-  _createCesiumViewer(container) {
+  _createCesiumViewer(container, featureLayers) {
+
+    console.log(featureLayers);
     
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -245,12 +259,16 @@ export class CesiumViewer extends LitElement {
         url: this.imageryProvider
       }),
     });
+    // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
+    
   
     const [cameraLon, cameraLat, cameraHeight] = this.cameraPosition;
     const [cameraHeading, cameraPitch, cameraRoll] = this.cameraAngle;
 
     const cameraPosition = new Cartesian3.fromDegrees(cameraLon, cameraLat, cameraHeight);
+
+
     
     viewer.camera.setView({
       destination: cameraPosition,
