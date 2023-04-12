@@ -38,6 +38,16 @@ const ourViewerOptions = {
   shadows: true,
   terrainShadows: ShadowMode.DISABLED,
 }
+const tilingScheme = new GeographicTilingScheme({
+  numberOfLevelZeroTilesX: 2,
+  numberOfLevelZeroTilesY: 1,
+});
+const rectangle = Rectangle.fromDegrees(
+  5.013926957923385,
+  45.35600133779394,
+  11.477436312994008,
+  48.27502358353741
+)
 
 /**
  * A `‹custom-element›` Custom Element, based on `LitElement`.
@@ -235,27 +245,24 @@ export class CesiumViewer extends LitElement {
   }
   willUpdate(changedProperties) {
     console.log(changedProperties)
+
+    // Si on détecte un changement dans la propriété baseLayer
     if (changedProperties.has('baseLayer')) {
       console.log(this.baseLayer)
-      this._viewer.imageryLayers.removeAll();
-      
-      const wmtsLayer =
-      new UrlTemplateImageryProvider({
-        url: this.baseLayer,
-        minimumLevel: 8,
+      // On enlève la première couche de la liste qui correspond au fond de carte
+      const firstLayer = this._viewer.imageryLayers.get(0);
+      this._viewer.imageryLayers.remove(firstLayer);
+      // On définit les paramètres du fond de carte à ajouter
+      const baseLayer =
+        new UrlTemplateImageryProvider({
+          url: this.baseLayer,
+          minimumLevel: 8,
           maximumLevel: 17,
-          tilingScheme: new GeographicTilingScheme({
-            numberOfLevelZeroTilesX: 2,
-            numberOfLevelZeroTilesY: 1
-          }),
-          rectangle: Rectangle.fromDegrees(
-              5.013926957923385,
-              45.35600133779394,
-              11.477436312994008,
-              48.27502358353741
-            )
-      });
-      this._viewer.imageryLayers.addImageryProvider(wmtsLayer);
+          tilingScheme: tilingScheme,
+          rectangle: rectangle
+        });
+      // On ajoute le fond de carte et on le place en première position
+      this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
     }
   }
 
@@ -271,13 +278,6 @@ export class CesiumViewer extends LitElement {
     } // … more side-effects! contained at least
   }
   _createCesiumViewer(container) {
-
-    
-    this.addEventListener('toggle-buildings', (e) => {
-      this.toggleBuildings = {...e.detail};
-      console.log(this.toggleBuildings)
-    });
-    
     
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -295,7 +295,7 @@ export class CesiumViewer extends LitElement {
       }),
     });
 
-    console.log(viewer.imageryLayers._layers[0])
+    
     // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
   
@@ -339,16 +339,15 @@ export class CesiumViewer extends LitElement {
     }
 
     // importation des Feature Layers
-    
     const layers = this.getAttribute("feature-layers");
     this.featureLayers = JSON.parse(layers);
     console.log(this.featureLayers)
-    const featureLayerArrayLenght = this.featureLayers.length;
+    const featureLayerArrayLength = this.featureLayers.length;
     const imageryLayers = viewer.imageryLayers;
     let imageryFormat = "image/png";
     let imageryTimestamp = "current";
 
-    for (let i = 0; i < featureLayerArrayLenght; i++) {
+    for (let i = 0; i < featureLayerArrayLength; i++) {
       if (this.featureLayers[i].format && this.featureLayers[i].format !== "image/png") {
         imageryFormat = this.featureLayers[i].format
       }
@@ -361,22 +360,14 @@ export class CesiumViewer extends LitElement {
           new WebMapServiceImageryProvider({
             url: "https://wms.geo.admin.ch/",
             layers: this.featureLayers[i].src,
-              parameters: {
-                format: imageryFormat,
-                transparent: true,
+            parameters: {
+              format: imageryFormat,
+              transparent: true,
             },
             minimumLevel: 8,
             maximumLevel: 17,
-            tilingScheme: new GeographicTilingScheme({
-              numberOfLevelZeroTilesX: 2,
-              numberOfLevelZeroTilesY: 1
-            }),
-            rectangle: Rectangle.fromDegrees(
-              5.013926957923385,
-              45.35600133779394,
-              11.477436312994008,
-              48.27502358353741
-            ),
+            tilingScheme: tilingScheme,
+            rectangle: rectangle,
             getFeatureInfoFormats: [
               new GetFeatureInfoFormat(
                 "text",
@@ -395,28 +386,12 @@ export class CesiumViewer extends LitElement {
           format: imageryFormat,
           tileMatrixSetID: imageryTimestamp,
           maximumLevel: 17,
-          tilingScheme: new GeographicTilingScheme({
-            numberOfLevelZeroTilesX: 2,
-            numberOfLevelZeroTilesY: 1
-          }),
-          rectangle: Rectangle.fromDegrees(
-            5.013926957923385,
-            45.35600133779394,
-            11.477436312994008,
-            48.27502358353741
-          )
+          tilingScheme: tilingScheme,
+          rectangle: rectangle
         });
-        imageryLayers.addImageryProvider(wmtsFeatureLayer);
+        //imageryLayers.add(wmtsFeatureLayer);
       }
     }
-
-    viewer.imageryLayers.layerAdded.addEventListener(layer => {
-      this.dispatchEvent(new CustomEvent('layerAdded', {
-        detail: {
-          layer: layer
-        }
-      }));
-    });
 
     const wmtsLayer2 =
     new WebMapTileServiceImageryProvider({
@@ -426,16 +401,8 @@ export class CesiumViewer extends LitElement {
       format: "image/png",
       tileMatrixSetID: "current",
       maximumLevel: 17,
-      tilingScheme: new GeographicTilingScheme({
-        numberOfLevelZeroTilesX: 2,
-        numberOfLevelZeroTilesY: 1
-      }),
-      rectangle: Rectangle.fromDegrees(
-        5.013926957923385,
-        45.35600133779394,
-        11.477436312994008,
-        48.27502358353741
-      )
+      tilingScheme: tilingScheme,
+      rectangle: rectangle
     });
 
     imageryLayers.addImageryProvider(wmtsLayer2);
