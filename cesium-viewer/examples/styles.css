@@ -31,6 +31,11 @@ p {
   background-color: rgba(255,255,255,.68);
   backdrop-filter: blur(20px);
 }
+ul{
+  list-style-type: none;
+  padding:0;
+  margin:0;
+}
 cesium-viewer {
   height: 100%;
 }

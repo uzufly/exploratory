@@ -19,6 +19,8 @@ import {
   CesiumTerrainProvider,
 } from "cesium";
 
+import {default as LayerPicker} from "./layer-picker.js";
+
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
 
@@ -45,7 +47,9 @@ const ourViewerOptions = {
  * @csspart (none) - This element has no CSS Parts.
  */
 export class CesiumViewer extends LitElement {
-  static properties = {
+  static get properties(){
+
+    return {
     /**
      * Default camera position the viewer is greeted with.
      * The Array is of the form `{ longitude: Number, latitude: Number, height: Number }`.
@@ -131,6 +135,8 @@ export class CesiumViewer extends LitElement {
      * 
      */
     swissTrees: { type: Boolean, attribute: "swiss-trees" },
+
+    baseLayer: { type: String},
     /**
      * The URL on our server where CesiumJS's static files are hosted;
      * see https://github.com/CesiumGS/cesium/issues/8327 for some explanation.
@@ -151,6 +157,7 @@ export class CesiumViewer extends LitElement {
      * processing the file that was dragged on top of the viewer.
      */
     _dropError: { type: Object, state: true },
+    }
   };
 
   static get styles() {
@@ -193,34 +200,27 @@ export class CesiumViewer extends LitElement {
     this.featureLayers = [];
     this.cesiumBaseURL = null;
     this.cameraAngle = null;
+    this.baseLayer = undefined;
+
+    this.swissTerrainProvider = false;
     this.swissBuildings = false;
     this.swissTrees = false;
-
-    this._dropError = null;
   }
 
   render() {
     return [
-      this.renderSlotted(), this.renderDropErrorIfAny()];
+      this.renderSlotted()];
   }
 
   renderSlotted() {
     return html`
-      <div part="slotted"><slot></slot></div>`;
+      <div part="slotted" @base-layer=${this._checkedHandler}><slot></slot>
+        </div>`;
   }
-  renderDropErrorIfAny() {
-    if (!this._dropError) return;
-    const { source, error } = this._dropError;
-    return html`<div part="msg">
-      <p>
-        <strong>Error processing <code>${source}</code></strong>
-      </p>
-      <blockquote><code>${error}</code></blockquote>
-    </div>`;
-  }
-  _dropErrorHandler(viewerArg, source, error) {
-    this._dropError = { source, error };
-    // viewerArg is unused
+
+  _checkedHandler(e) {
+    console.log(e.detail)
+    this.baseLayer = e.detail
   }
 
   firstUpdated() {
@@ -229,6 +229,34 @@ export class CesiumViewer extends LitElement {
       this.ionAccessToken
     );
     this._viewer = this._createCesiumViewer(this.renderRoot);
+
+    // this.addEventListener('toggle-buildings', this.toggleBuildings);
+    // this.addEventListener('toggle-trees', this.toggleTrees);
+  }
+  willUpdate(changedProperties) {
+    console.log(changedProperties)
+    if (changedProperties.has('baseLayer')) {
+      console.log(this.baseLayer)
+      this._viewer.imageryLayers.removeAll();
+      
+      const wmtsLayer =
+      new UrlTemplateImageryProvider({
+        url: this.baseLayer,
+        minimumLevel: 8,
+          maximumLevel: 17,
+          tilingScheme: new GeographicTilingScheme({
+            numberOfLevelZeroTilesX: 2,
+            numberOfLevelZeroTilesY: 1
+          }),
+          rectangle: Rectangle.fromDegrees(
+              5.013926957923385,
+              45.35600133779394,
+              11.477436312994008,
+              48.27502358353741
+            )
+      });
+      this._viewer.imageryLayers.addImageryProvider(wmtsLayer);
+    }
   }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
@@ -243,6 +271,13 @@ export class CesiumViewer extends LitElement {
     } // … more side-effects! contained at least
   }
   _createCesiumViewer(container) {
+
+    
+    this.addEventListener('toggle-buildings', (e) => {
+      this.toggleBuildings = {...e.detail};
+      console.log(this.toggleBuildings)
+    });
+    
     
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -259,6 +294,8 @@ export class CesiumViewer extends LitElement {
         url: this.imageryProvider
       }),
     });
+
+    console.log(viewer.imageryLayers._layers[0])
     // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
   
@@ -279,13 +316,11 @@ export class CesiumViewer extends LitElement {
     const swissTLM3D = new Cesium3DTileset({
       url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
       shadows: ShadowMode.DISABLED,
-      // colorBlendAmount : 0,
-      // colorBlendMode: Cesium3DTileColorBlendMode.REPLACE,
-      // backFaceCulling: false,
     });
     const swissTREES = new Cesium3DTileset({
       url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
       shadows: ShadowMode.DISABLED,
+      show: false,
     });
 
     swissTLM3D.readyPromise.then(function(swissTLM3D) {
@@ -295,9 +330,10 @@ export class CesiumViewer extends LitElement {
       swissTLM3D.style = style;
     });
 
-    if (this.swissBuildings) { 
-      viewer.scene.primitives.add(swissTLM3D);
-    }
+    viewer.scene.primitives.add(swissTLM3D);
+
+    swissTLM3D.show = this.swissBuildings;
+    
     if (this.swissTrees) { 
       viewer.scene.primitives.add(swissTREES);
     }
@@ -373,6 +409,14 @@ export class CesiumViewer extends LitElement {
         imageryLayers.addImageryProvider(wmtsFeatureLayer);
       }
     }
+
+    viewer.imageryLayers.layerAdded.addEventListener(layer => {
+      this.dispatchEvent(new CustomEvent('layerAdded', {
+        detail: {
+          layer: layer
+        }
+      }));
+    });
 
     const wmtsLayer2 =
     new WebMapTileServiceImageryProvider({
