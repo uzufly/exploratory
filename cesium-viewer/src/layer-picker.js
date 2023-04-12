@@ -3,6 +3,8 @@ import {
     CesiumTerrainProvider
 } from "cesium";
 
+console.log(window.location.pathname);
+
 export class LayerPicker extends LitElement {
 
     static properties = {
@@ -49,7 +51,7 @@ export class LayerPicker extends LitElement {
                         appearance:none;
             }
             .hillshade {
-                background-image: url(../src/hillshade.png);
+                background-image: url(./img/hillshade.png);
             }
             .chosen-map, .layer-picker input:active +.chosen-map{opacity: .9;}
             .chosen-map, .layer-picker input:checked +.chosen-map{
