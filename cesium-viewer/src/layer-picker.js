@@ -31,14 +31,49 @@ export class LayerPicker extends LitElement {
             .layer-picker {
                 z-index: 4;
                 position: absolute;
+                display: grid;
+                grid-template-columns: 33% 33% 33%;
                 right: 1rem;
                 top: 6rem;
-                width: 200px;
+                width: 600px;
                 height: 100px;
                 background-color: rgba(255,255,255,.68);
                 backdrop-filter: blur(20px);
                 border-radius: 10px;
                 padding: 1rem;
+            }
+            .layer-picker input{
+                margin:0;padding:0;
+                -webkit-appearance:none;
+                   -moz-appearance:none;
+                        appearance:none;
+            }
+            .hillshade {
+                background-image: url(../src/hillshade.png);
+            }
+            .chosen-map, .layer-picker input:active +.chosen-map{opacity: .9;}
+            .chosen-map, .layer-picker input:checked +.chosen-map{
+                -webkit-filter: none;
+                -moz-filter: none;
+                        filter: none;
+            }
+            .chosen-map{
+                cursor:pointer;
+                background-size:contain;
+                background-repeat:no-repeat;
+                width:100px;height:100px;
+                -webkit-transition: all 100ms ease-in;
+                   -moz-transition: all 100ms ease-in;
+                        transition: all 100ms ease-in;
+                -webkit-filter: brightness(1.8) grayscale(1) opacity(.7);
+                   -moz-filter: brightness(1.8) grayscale(1) opacity(.7);
+                        filter: brightness(1.8) grayscale(1) opacity(.7);
+            }
+            .chosen-map:hover{
+                -webkit-filter: brightness(1.2) grayscale(.5) opacity(.9);
+                   -moz-filter: brightness(1.2) grayscale(.5) opacity(.9);
+                        filter: brightness(1.2) grayscale(.5) opacity(.9);
+            }
           `,
           ];
     }
@@ -54,18 +89,17 @@ export class LayerPicker extends LitElement {
 
     _renderBaseLayerPicker() {
         return html`
-            <label>
-                <input type="radio" name="base-layer" value="https://wmts100.geo.admin.ch/1.0.0/ch.swisstopo.swissalti3d-reliefschattierung/default/current/4326/{z}/{x}/{y}.png" @change=${this._onChangeBaseLayer} checked>
-                Hillshade
-            </label><br>
-            <label>
-                <input type="radio" name="base-layer" value="https://wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg" @change=${this._onChangeBaseLayer}>
+            <label class="chosen-map hillshade">
+                <input type="radio" id="hillshade" name="base-layer" value="https://wmts100.geo.admin.ch/1.0.0/ch.swisstopo.swissalti3d-reliefschattierung/default/current/4326/{z}/{x}/{y}.png" @change=${this._onChangeBaseLayer} checked>
+            </label>
+            <label class="chosen-map imagery">
+                <input type="radio" id="imagery" name="base-layer" value="https://wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg" @change=${this._onChangeBaseLayer}>
                 Imagery
-            </label><br>
-            <label>
-                <input type="radio" name="base-layer" value="https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg" @change=${this._onChangeBaseLayer}>
+            </label>
+            <label class="chosen-map vector">
+                <input type="radio" id="vector" name="base-layer" value="https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg" @change=${this._onChangeBaseLayer}>
                 Vector
-            </label><br>
+            </label>
         `;
     }
 
@@ -74,15 +108,15 @@ export class LayerPicker extends LitElement {
             <label>
                 <input type="checkbox" @change=${this._toggleTerrain} ?checked=${this.swissTerrain}>
                 Swiss Terrain
-            </label><br>
+            </label>
             <label>
                 <input type="checkbox" @change=${this._toggleBuildings} ?checked=${this.swissBuildings}>
                 Swiss Buildings
-            </label><br>
+            </label>
             <label>
                 <input type="checkbox" @change=${this._toggleTrees} ?checked=${this.swissTrees}>
                 Swiss Trees
-            </label><br>
+            </label>
         `;
     }
 
