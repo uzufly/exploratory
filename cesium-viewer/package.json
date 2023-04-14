@@ -70,6 +70,14 @@
   },
   "staticFiles": [
     {
+      "staticOutPath": "static/Data",
+      "staticPath": "src/assets/data"
+    },
+    {
+      "staticOutPath": "static/img",
+      "staticPath": "src/assets/img"
+    },
+    {
       "staticOutPath": "static/Assets",
       "staticPath": "node_modules/cesium/Build/Cesium/Assets"
     },

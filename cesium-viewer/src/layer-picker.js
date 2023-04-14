@@ -51,17 +51,17 @@ export class LayerPicker extends LitElement {
                         appearance:none;
             }
             .hillshade {
-                background-image: url(https://raw.githubusercontent.com/uzufly/exploratory/main/cesium-viewer/src/assets/img/hillshade.png);
+                background-image: url(../static/img/hillshade.png);
                 border-radius: 50%;
                 justify-self: center;
             }
             .imagery {
-                background-image: url(https://raw.githubusercontent.com/uzufly/exploratory/main/cesium-viewer/src/assets/img/imageAerienne.png);
+                background-image: url(../static/img/imageAerienne.png);
                 border-radius: 50%;
                 justify-self: center;
             }
             .vector {
-                background-image: url(https://raw.githubusercontent.com/uzufly/exploratory/main/cesium-viewer/src/assets/img/vector.png);
+                background-image: url(../static/img/vector.png);
                 border-radius: 50%;
                 justify-self: center;
             }
