@@ -103,6 +103,10 @@ export class LayerPicker extends LitElement {
                 grid-column-end: span 3;
                 height: 30px;
             }
+            .layer-displayed {
+                grid-column-start: 1;
+                grid-column-end: span 3;
+            }
           `,
           ];
     }
@@ -113,6 +117,7 @@ export class LayerPicker extends LitElement {
                 ${this._renderCheckBox()}
                 ${this._renderBaseLayerPicker()}
                 ${this._renderDropDown()}
+                ${this._renderLayerDisplayed()}
             </div>
         `;
     }
@@ -151,6 +156,14 @@ export class LayerPicker extends LitElement {
         return html`
             <select id="feature-layer-menu" class="custom-select" name="feature-layer" @change=${this._selectFeatureLayer}>
             </select>
+        `;
+    }
+
+    _renderLayerDisplayed = () => {
+        return html`
+            <div class="layer-displayed">
+                <p>Layer displayed :</p>
+            </div>
         `;
     }
  
@@ -202,9 +215,32 @@ export class LayerPicker extends LitElement {
             console.error('An error occurred fetching the JSON from ' + url);
         };
         request.send();
+
+        let selectedValuesDiv = this.shadowRoot.querySelector('.layer-displayed');
+
+        let selectedValues = [];
         featureLayerMenu.addEventListener('change', function() {
             console.log(featureLayerMenu);
             let selectedOption = featureLayerMenu.options[featureLayerMenu.selectedIndex].textContent;
+
+            // On regarde si la couche sélectionnée n'est pas déjà dans l'array
+            if (!selectedValues.includes(selectedOption)) {
+                // Si elle n'est pas dans l'array, on l'ajoute
+                selectedValues.push(selectedOption);
+            }
+
+            // let list = document.createElement('ul');
+            // for (let i = 0; i < selectedValues.length; i++) {
+            //     let item = document.createElement('li');
+            //     item.textContent = selectedValues[i];
+            //     list.appendChild(item);
+            // }
+            // selectedValuesDiv.appendChild(list);
+
+
+            selectedValuesDiv.innerHTML = `<p>Layer displayed : ${selectedValues}</p></br>`;
+
+
             console.log(selectedOption);
         });
     }
