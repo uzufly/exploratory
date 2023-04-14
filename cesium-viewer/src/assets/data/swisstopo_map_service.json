@@ -1,5 +1,65 @@
 [
   {
+    "n": 452,
+    "layerName": "ch.swisstopo.geologie-geocover",
+    "Description": "GeoCover - données vectorielles",
+    "Service": "WMTS",
+    "WMTS_format": "png",
+    "Timestamp": "current",
+    "Code_fournisseur": "swisstopo",
+    "Fournisseur": "SwissTopo"
+  },
+  {
+    "n": 558,
+    "layerName": "ch.swisstopo.vec200-names-namedlocation",
+    "Description": "Noms swissTLMRegio",
+    "Service": "WMTS",
+    "WMTS_format": "png",
+    "Timestamp": "current",
+    "Code_fournisseur": "swisstopo",
+    "Fournisseur": "SwissTopo"
+  },
+  {
+    "n": 431,
+    "layerName": "ch.kantone.cadastralwebmap-farbe",
+    "Description": "CadastralWebMap",
+    "Service": "WMTS WMS",
+    "WMTS_format": "png",
+    "Timestamp": "current",
+    "Code_fournisseur": "kantone",
+    "Fournisseur": "Canton"
+  },
+  {
+    "n": 357,
+    "layerName": "ch.bazl.einschraenkungen-drohnen",
+    "Description": "Restrictions pour drones",
+    "Service": "WMTS WMS",
+    "WMTS_format": "png",
+    "Timestamp": "current",
+    "Code_fournisseur": "bazl",
+    "Fournisseur": "Office fédéral de l'aviation civile"
+  },
+  {
+    "n": 538,
+    "layerName": "ch.swisstopo.swissimage-product_1946",
+    "Description": "SWISSIMAGE HIST 1946",
+    "Service": "WMTS",
+    "WMTS_format": "jpeg",
+    "Timestamp": 1946,
+    "Code_fournisseur": "swisstopo",
+    "Fournisseur": "SwissTopo"
+  },
+  {
+    "n": 539,
+    "layerName": "ch.swisstopo.swissnames3d",
+    "Description": "swissNames3D",
+    "Service": "WMTS WMS",
+    "WMTS_format": "png",
+    "Timestamp": "current",
+    "Code_fournisseur": "swisstopo",
+    "Fournisseur": "SwissTopo"
+  },
+  {
     "n": 1,
     "layerName": "ch.are.agglomerationsverkehr",
     "Description": "Villes et agglomérations VaCO",
@@ -3560,16 +3620,6 @@
     "Fournisseur": "Office fédéral de l'aviation civile"
   },
   {
-    "n": 357,
-    "layerName": "ch.bazl.einschraenkungen-drohnen",
-    "Description": "Restrictions pour drones",
-    "Service": "WMTS WMS",
-    "WMTS_format": "png",
-    "Timestamp": "current",
-    "Code_fournisseur": "bazl",
-    "Fournisseur": "Office fédéral de l'aviation civile"
-  },
-  {
     "n": 358,
     "layerName": "ch.bazl.flugplaetze-heliports",
     "Description": "Aérodromes + Héliports",
@@ -4300,16 +4350,6 @@
     "Fournisseur": "Inspection fédérale de la sécurité nucléaire"
   },
   {
-    "n": 431,
-    "layerName": "ch.kantone.cadastralwebmap-farbe",
-    "Description": "CadastralWebMap",
-    "Service": "WMTS WMS",
-    "WMTS_format": "png",
-    "Timestamp": "current",
-    "Code_fournisseur": "kantone",
-    "Fournisseur": "Canton"
-  },
-  {
     "n": 432,
     "layerName": "ch.meteoschweiz.klimanormwerte-niederschlag_1961_1990",
     "Description": "Précipitation 1961-1990 (normes climatologiques)",
@@ -4504,16 +4544,6 @@
     "layerName": "ch.swisstopo.geologie-felsoberflaeche_hoehenmodell",
     "Description": "Modèle d'altitude du toit du rocher",
     "Service": "WMTS WMS",
-    "WMTS_format": "png",
-    "Timestamp": "current",
-    "Code_fournisseur": "swisstopo",
-    "Fournisseur": "SwissTopo"
-  },
-  {
-    "n": 452,
-    "layerName": "ch.swisstopo.geologie-geocover",
-    "Description": "GeoCover - données vectorielles",
-    "Service": "WMTS",
     "WMTS_format": "png",
     "Timestamp": "current",
     "Code_fournisseur": "swisstopo",
@@ -5360,26 +5390,6 @@
     "Fournisseur": "SwissTopo"
   },
   {
-    "n": 538,
-    "layerName": "ch.swisstopo.swissimage-product_1946",
-    "Description": "SWISSIMAGE HIST 1946",
-    "Service": "WMTS",
-    "WMTS_format": "jpeg",
-    "Timestamp": 1946,
-    "Code_fournisseur": "swisstopo",
-    "Fournisseur": "SwissTopo"
-  },
-  {
-    "n": 539,
-    "layerName": "ch.swisstopo.swissnames3d",
-    "Description": "swissNames3D",
-    "Service": "WMTS WMS",
-    "WMTS_format": "png",
-    "Timestamp": "current",
-    "Code_fournisseur": "swisstopo",
-    "Fournisseur": "SwissTopo"
-  },
-  {
     "n": 540,
     "layerName": "ch.swisstopo.swisssurface3d-reliefschattierung_monodirektional",
     "Description": "swissSURFACE3D Raster relief monodirectionnel",
@@ -5553,16 +5563,6 @@
     "n": 557,
     "layerName": "ch.swisstopo.vec200-miscellaneous-geodpoint",
     "Description": "Cotes d'altitude swissTLMRegio",
-    "Service": "WMTS",
-    "WMTS_format": "png",
-    "Timestamp": "current",
-    "Code_fournisseur": "swisstopo",
-    "Fournisseur": "SwissTopo"
-  },
-  {
-    "n": 558,
-    "layerName": "ch.swisstopo.vec200-names-namedlocation",
-    "Description": "Noms swissTLMRegio",
     "Service": "WMTS",
     "WMTS_format": "png",
     "Timestamp": "current",

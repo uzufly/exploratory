@@ -43,6 +43,7 @@ export class LayerPicker extends LitElement {
                 backdrop-filter: blur(20px);
                 border-radius: 10px;
                 padding: 1rem;
+                align-items: center;
             }
             .layer-picker input[type="radio"]{
                 margin:0;padding:0;
@@ -99,7 +100,8 @@ export class LayerPicker extends LitElement {
             .custom-select {
                 grid-row-start: 3;
                 grid-column-start: 1;
-                grid-column-end: span 2;
+                grid-column-end: span 3;
+                height: 30px;
             }
           `,
           ];
@@ -210,10 +212,21 @@ export class LayerPicker extends LitElement {
     _selectFeatureLayer(e) {
 
         this.featureLayer = e.target.value;
-        console.log(this.featureLayer)
+        let service = e.target.options[e.target.selectedIndex].service;
+        let WMTS_format = e.target.options[e.target.selectedIndex].WMTS_format;
+        let timestamp = e.target.options[e.target.selectedIndex].timestamp;
+        let codeFournisseur = e.target.options[e.target.selectedIndex].code_fournisseur;
+        let fournisseur = e.target.options[e.target.selectedIndex].Fournisseur;
+        console.log(service)
         
         this.dispatchEvent(new CustomEvent("feature-layer", {
-            detail: this.featureLayer,
+            detail: {featureLayer: this.featureLayer,
+                    service: service,
+                    WMTS_format: WMTS_format,
+                    timestamp: timestamp,
+                    codeFournisseur: codeFournisseur,
+                    fournisseur: fournisseur
+                },
             bubbles: true,
             composed: true,
         }));

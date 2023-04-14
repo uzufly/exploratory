@@ -236,7 +236,7 @@ export class CesiumViewer extends LitElement {
       `;
   }
   _checkedFeatureLayers(e) {
-    
+    const hasChanged = true;
     this.featureLayers = e.detail
     console.log(this.featureLayers)
   }
@@ -285,12 +285,20 @@ export class CesiumViewer extends LitElement {
   updated(changedProperties) {
     if(changedProperties.has('featureLayers')) {
       // On enlève les couches de la liste qui correspondent aux couches de données
-      console.log('featureClicked0', this.featureLayers)
+      console.log(this._viewer.imageryLayers)
+      console.log(this.featureLayers.featureLayer)
+      
+      // const imageryLayersLength = this._viewer.imageryLayers.length;
+      // const lastLayer = this._viewer.imageryLayers.get(imageryLayersLength - 1);
+      // this._viewer.imageryLayers.remove(lastLayer);
+      
+      
       //this._viewer.imageryLayers.removeAll();
+      if (this.featureLayers.service === "WMS" || this.featureLayers.service === "WMTS WMS") {
       const wmsFeatureLayer =
             new WebMapServiceImageryProvider({
               url: "https://wms.geo.admin.ch/",
-              layers: this.featureLayers,
+              layers: this.featureLayers.featureLayer,
               parameters: {
                 format: "image/png",
                 transparent: true,
@@ -306,6 +314,21 @@ export class CesiumViewer extends LitElement {
               ],
             });
             this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
+            // this._viewer.imageryLayers.lowerToBottom(wmsFeatureLayer)
+      } if (this.featureLayers.service === "WMTS") {
+        const wmtsFeatureLayer =
+          new WebMapTileServiceImageryProvider({
+            url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers.featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
+            layer: this.featureLayers.featureLayer,
+            style: "default",
+            format: "image/png",
+            tileMatrixSetID: this.featureLayers.timestamp,
+            maximumLevel: 17,
+            tilingScheme: tilingScheme,
+            rectangle: rectangle
+          });
+          this._viewer.imageryLayers.addImageryProvider(wmtsFeatureLayer);
+      }
     }
     // Si la propriété swissBuildings a changé
     if (changedProperties.has('swissBuildings')) {
@@ -390,7 +413,7 @@ export class CesiumViewer extends LitElement {
     // On applique ici un style blanc transparent, ce qui ne change pas la couleur des bâtiments
     swissTLM3D.readyPromise.then(function(swissTLM3D) {
       var style = new Cesium3DTileStyle({
-        color: 'color("GHOSTWHITE", 0.9)'
+        color: 'color("GHOSTWHITE", 1)'
       });
       swissTLM3D.style = style;
     });
@@ -430,7 +453,6 @@ export class CesiumViewer extends LitElement {
               url: "https://wms.geo.admin.ch/",
               layers: this.featureLayers[i].src,
               parameters: {
-                format: imageryFormat,
                 transparent: true,
               },
               minimumLevel: 8,
