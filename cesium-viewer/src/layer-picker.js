@@ -9,8 +9,8 @@ export class LayerPicker extends LitElement {
 
     static properties = {
         swissTerrain: { type: Boolean },
-        swissBuildings: { type: Boolean },
-        swissTrees: { type: Boolean },
+        // swissBuildings: { type: Boolean },
+        // swissTrees: { type: Boolean },
         hillshadeBaseLayer: { type: String},
         imageryBaseLayer: {type: String},
         vectorBaseLayer: {type: String},
@@ -19,8 +19,8 @@ export class LayerPicker extends LitElement {
     constructor() {
         super();
         this.swissTerrain = true;
-        this.swissBuildings = false;
-        this.swissTrees = false;
+        this.swissBuildings = true;
+        this.swissTrees = true;
         this.baseLayer = ''
     }
     static get styles(){
@@ -139,6 +139,14 @@ export class LayerPicker extends LitElement {
             </label>
         `;
     }
+
+    firstUpdated() {
+        // this.addEventListener('toggle-terrain', this.toggleTerrain);
+        
+    
+        // this.addEventListener('toggle-buildings', this.toggleBuildings);
+        // this.addEventListener('toggle-trees', this.toggleTrees);
+      }
     _onChangeBaseLayer(e) {
 
         this.baseLayer = e.target.value;
@@ -160,24 +168,29 @@ export class LayerPicker extends LitElement {
         }));
         // console.log(this.dispatchEvent(new CustomEvent("toggle-terrain", this.swissTerrain)))
     }   
-    _toggleBuildings(e) {
-
-        this.swissBuildings = e.target.checked;
-        const detail = {swissBuildings: this.swissBuildings};
-        console.log(this.swissBuildings)
-        this.dispatchEvent(new CustomEvent("checked", {
-            detail,
-            bubbles: true,
-            composed: true,
-            cancelable: true,
-        }));
+    _toggleBuildings(event) {
+        const swissBuildings = event.target.checked;
+        const hasChanged = this.swissBuildings !== swissBuildings;
+        if (hasChanged) {
+            this.swissBuildings = swissBuildings;
+            this.dispatchEvent(new CustomEvent("toggle-buildings", {
+                detail: this.swissBuildings,
+                bubbles: true,
+                composed: true,
+            }));
+        }
     }
-    _toggleTrees(e) {
-        this.swissTrees = e.target.checked;
-        
-        this.dispatchEvent(new CustomEvent("toggle-trees", {detail: this.swissTrees}));
-
-        //console.log(this.dispatchEvent(new CustomEvent("swiss-trees", {detail: this.swissTrees})))
+    _toggleTrees(event) {
+        this.swissTrees = event.target.checked;
+        const hasChanged = this.swissTrees !== swissTrees;
+        if (hasChanged) {
+            this.swissTrees = swissTrees;
+            this.dispatchEvent(new CustomEvent("toggle-trees", {
+                detail: this.swissTrees,
+                bubbles: true,
+                composed: true,
+            }));
+        }
     }
 
 }

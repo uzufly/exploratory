@@ -17,6 +17,7 @@ import {
   Rectangle,
   ShadowMode,
   CesiumTerrainProvider,
+  PrimitiveCollection,
 } from "cesium";
 
 import {default as LayerPicker} from "./layer-picker.js";
@@ -212,9 +213,9 @@ export class CesiumViewer extends LitElement {
     this.cameraAngle = null;
     this.baseLayer = undefined;
 
-    this.swissTerrainProvider = false;
     this.swissBuildings = false;
     this.swissTrees = false;
+
   }
 
   render() {
@@ -224,8 +225,7 @@ export class CesiumViewer extends LitElement {
 
   renderSlotted() {
     return html`
-      <div part="slotted" @base-layer=${this._checkBaseLayer}><slot></slot></div>
-      <div part="slotted" @checked=${this._checkBuildings}><slot></slot></div>
+      <div part="slotted" @base-layer=${this._checkBaseLayer} @toggle-buildings=${this._checkBuildings}><slot></slot></div>
       `;
   }
 
@@ -234,9 +234,13 @@ export class CesiumViewer extends LitElement {
     this.baseLayer = e.detail
   }
 
-  _checkBuildings(e) {
-    console.log(e.detail.swissBuildings)
-    this.swissBuildings = e.detail
+  _checkBuildings(event) {
+    const target = event.target;
+    console.log(target)
+    this.swissBuildings = target.swissBuildings;
+    console.log(this.swissBuildings)
+    // console.log(e.detail.swissBuildings)
+    // this.swissBuildings = e.detail
   }
 
   firstUpdated() {
@@ -245,9 +249,6 @@ export class CesiumViewer extends LitElement {
       this.ionAccessToken
     );
     this._viewer = this._createCesiumViewer(this.renderRoot);
-
-    // this.addEventListener('toggle-buildings', this.toggleBuildings);
-    // this.addEventListener('toggle-trees', this.toggleTrees);
   }
 
   willUpdate(changedProperties) {
@@ -255,8 +256,6 @@ export class CesiumViewer extends LitElement {
 
     // Si on détecte un changement dans la propriété baseLayer
     if (changedProperties.has('baseLayer')) {
-      console.log(this.baseLayer)
-      console.log(this.swissBuildings)
       // On enlève la première couche de la liste qui correspond au fond de carte
       const firstLayer = this._viewer.imageryLayers.get(0);
       this._viewer.imageryLayers.remove(firstLayer);
@@ -276,22 +275,20 @@ export class CesiumViewer extends LitElement {
     
   }
 
-  updated(changedProperties) {
+  updated(changedProperties, swissTLM3D) {
     if (changedProperties.has('swissBuildings')) {  
       console.log(this.swissBuildings)
-      
-      if (this.swissBuildings) {
-        // this._viewer.scene.primitives.removeAll();
-        const swissBuildings3D = new Cesium3DTileset({
-          url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
-          shadows: ShadowMode.DISABLED,
-        });
-        this._viewer.scene.primitives.add(swissBuildings3D);
+      console.log(this._viewer.scene.primitives._primitives[0]._name)
+      for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
+        if (this._viewer.scene.primitives._primitives[i]._url === "https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json") {
+          this._viewer.scene.primitives._primitives[i].show = this.swissBuildings;
+        }
+        if (this._viewer.scene.primitives._primitives[i]._url === "https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json") {
+          this._viewer.scene.primitives._primitives[i].show = this.swissTrees;
+        }
       }
     }
-  }
-
-    
+  } 
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
     // this is the way the Cesium Viewer requires it to resolve its static resources
@@ -340,14 +337,17 @@ export class CesiumViewer extends LitElement {
       }
     });
 
+    const primitivesCollection = new PrimitiveCollection()
+
     const swissTLM3D = new Cesium3DTileset({
       url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
       shadows: ShadowMode.DISABLED,
+      show: this.swissBuildings,
     });
     const swissTREES = new Cesium3DTileset({
       url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
       shadows: ShadowMode.DISABLED,
-      show: false,
+      show: this.swissTrees,
     });
 
     swissTLM3D.readyPromise.then(function(swissTLM3D) {
@@ -358,12 +358,8 @@ export class CesiumViewer extends LitElement {
     });
 
     viewer.scene.primitives.add(swissTLM3D);
-
-    swissTLM3D.show = this.swissBuildings;
-    
-    if (this.swissTrees) { 
-      viewer.scene.primitives.add(swissTREES);
-    }
+  
+    viewer.scene.primitives.add(swissTREES);
 
     // importation des Feature Layers
     const layers = this.getAttribute("feature-layers");
