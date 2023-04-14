@@ -181,7 +181,7 @@ export class LayerPicker extends LitElement {
         }
     }
     _toggleTrees(event) {
-        this.swissTrees = event.target.checked;
+        const swissTrees = event.target.checked;
         const hasChanged = this.swissTrees !== swissTrees;
         if (hasChanged) {
             this.swissTrees = swissTrees;

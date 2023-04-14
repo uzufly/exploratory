@@ -225,7 +225,11 @@ export class CesiumViewer extends LitElement {
 
   renderSlotted() {
     return html`
-      <div part="slotted" @base-layer=${this._checkBaseLayer} @toggle-buildings=${this._checkBuildings}><slot></slot></div>
+      <div part="slotted" 
+        @base-layer=${this._checkBaseLayer} 
+        @toggle-buildings=${this._checkBuildings}
+        @toggle-trees=${this._checkTrees}
+      ><slot></slot></div>
       `;
   }
 
@@ -241,6 +245,11 @@ export class CesiumViewer extends LitElement {
     console.log(this.swissBuildings)
     // console.log(e.detail.swissBuildings)
     // this.swissBuildings = e.detail
+  }
+  _checkTrees(event) {
+    const target = event.target;
+    console.log(target)
+    this.swissTrees = target.swissTrees;
   }
 
   firstUpdated() {
@@ -277,12 +286,14 @@ export class CesiumViewer extends LitElement {
 
   updated(changedProperties, swissTLM3D) {
     if (changedProperties.has('swissBuildings')) {  
-      console.log(this.swissBuildings)
-      console.log(this._viewer.scene.primitives._primitives[0]._name)
       for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
         if (this._viewer.scene.primitives._primitives[i]._url === "https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json") {
           this._viewer.scene.primitives._primitives[i].show = this.swissBuildings;
         }
+      }
+    }
+    if (changedProperties.has('swissTrees')) {
+      for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
         if (this._viewer.scene.primitives._primitives[i]._url === "https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json") {
           this._viewer.scene.primitives._primitives[i].show = this.swissTrees;
         }
