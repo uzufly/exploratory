@@ -8,6 +8,7 @@ export class LayerPicker extends LitElement {
     static get properties() {
         return {
             defaultBuildings: {type: Boolean},
+            defaultTrees: {type: Boolean},
             hillshadeBaseLayer: { type: String},
             imageryBaseLayer: {type: String},
             vectorBaseLayer: {type: String},
@@ -16,12 +17,11 @@ export class LayerPicker extends LitElement {
 
     constructor() {
         super();
-        this.defaultBuildings = false,
+        this.defaultBuildings = false;
+        this.defaultTrees = false;
         this.swissTerrain = true;
-        this.baseLayer = ''
-    }
 
-    
+    }
     static get styles(){
 
         return [
@@ -34,7 +34,7 @@ export class LayerPicker extends LitElement {
                 position: absolute;
                 display: grid;
                 grid-template-columns: 33% 33% 33%;
-                grid-template-rows: 50% 50%;
+                grid-template-rows: 33% 33% 33%;
                 right: 1rem;
                 top: 6rem;
                 width: 300px;
@@ -96,6 +96,11 @@ export class LayerPicker extends LitElement {
             .hillshade, .imagery, .vector {
                 grid-row-start: 2;
             }
+            .custom-select {
+                grid-row-start: 3;
+                grid-column-start: 1;
+                grid-column-end: span 2;
+            }
           `,
           ];
     }
@@ -105,6 +110,7 @@ export class LayerPicker extends LitElement {
             <div class="layer-picker" id="layer-picker">
                 ${this._renderCheckBox()}
                 ${this._renderBaseLayerPicker()}
+                ${this._renderDropDown()}
             </div>
         `;
     }
@@ -133,9 +139,20 @@ export class LayerPicker extends LitElement {
                 Swiss Buildings
             </label>
             <label>
-                <input type="checkbox" name="toggle-trees" @change=${this._toggleTrees} .checked=${this.swissTrees}>
+                <input type="checkbox" name="toggle-trees" @change=${this._toggleTrees} .checked=${this.defaultTrees}>
                 Swiss Trees
             </label>
+        `;
+    }
+
+    _renderDropDown = () => {
+        return html`
+            <select id="feature-layer-menu" class="custom-select" name="feature-layer" @change=${this._selectFeatureLayer}>
+                <option value="" disabled selected>Choose a base layer</option>
+                <option value="https://wmts100.geo.admin.ch/1.0.0/ch.swisstopo.swissalti3d-reliefschattierung/default/current/4326/{z}/{x}/{y}.png">Hillshade</option>
+                <option value="https://wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg">Imagery</option>
+                <option value="https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg">Vector</option>
+            </select>
         `;
     }
 
@@ -149,9 +166,58 @@ export class LayerPicker extends LitElement {
             }
             // On fait la même chose pour les arbres
             if (document.getElementsByTagName('cesium-viewer')[i].hasAttribute('swiss-trees')) {
-                this.swissTrees = true;
+                this.defaultTrees = true;
             }
         }
+        const featureLayerMenu = this.shadowRoot.getElementById('feature-layer-menu');
+        featureLayerMenu.length = 0;
+        let defaultOption = document.createElement('option');
+        defaultOption.text = 'Choose a feature layer';
+        featureLayerMenu.add(defaultOption);
+        featureLayerMenu.selectedIndex = 0;
+
+        const url = '../static/Data/swisstopo_map_service.json';
+        const request = new XMLHttpRequest();
+        request.open('GET', url, true);
+        request.onload = () => {
+            if (request.status === 200) {
+                const data = JSON.parse(request.responseText);
+                let option;
+                for (let i = 0; i < data.length; i++) {
+                    option = document.createElement('option');
+                    option.text = data[i].Description;
+                    option.value = data[i].layerName;
+                    option.service = data[i].Service;
+                    option.WMTS_format = data[i].WMTS_format;
+                    option.timestamp = data[i].Timestamp;
+                    option.code_fournisseur = data[i].Code_fournisseur;
+                    option.Fournisseur = data[i].Fournisseur;
+                    featureLayerMenu.add(option);
+                }
+            } else {
+                // Reached the server, but it returned an error
+            }
+        }
+        request.onerror = () => {
+            console.error('An error occurred fetching the JSON from ' + url);
+        };
+        request.send();
+
+
+        console.log(featureLayerMenu)
+
+    }
+    _selectFeatureLayer(e) {
+
+        this.featureLayer = e.target.value;
+        console.log(this.featureLayer)
+        
+        this.dispatchEvent(new CustomEvent("feature-layer", {
+            detail: this.featureLayer,
+            bubbles: true,
+            composed: true,
+        }));
+        
     }
 
     _onChangeBaseLayer(e) {

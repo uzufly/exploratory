@@ -231,8 +231,14 @@ export class CesiumViewer extends LitElement {
         @base-layer=${this._checkedBaseLayer} 
         @toggle-buildings=${this._checkedBuildings}
         @toggle-trees=${this._checkedTrees}
+        @feature-layer=${this._checkedFeatureLayers}
       ><slot></slot></div>
       `;
+  }
+  _checkedFeatureLayers(e) {
+    
+    this.featureLayers = e.detail
+    console.log(this.featureLayers)
   }
   _checkedBaseLayer(e) {
     console.log(e.detail)
@@ -241,6 +247,7 @@ export class CesiumViewer extends LitElement {
   _checkedBuildings(event) {
     const target = event.target;
     this.swissBuildings = target.swissBuildings;
+    console.log(this.swissBuildings)
   }
   _checkedTrees(event) {
     const target = event.target;
@@ -276,6 +283,30 @@ export class CesiumViewer extends LitElement {
   }
 
   updated(changedProperties) {
+    if(changedProperties.has('featureLayers')) {
+      // On enlève les couches de la liste qui correspondent aux couches de données
+      console.log('featureClicked0', this.featureLayers)
+      //this._viewer.imageryLayers.removeAll();
+      const wmsFeatureLayer =
+            new WebMapServiceImageryProvider({
+              url: "https://wms.geo.admin.ch/",
+              layers: this.featureLayers,
+              parameters: {
+                format: "image/png",
+                transparent: true,
+              },
+              minimumLevel: 8,
+              maximumLevel: 17,
+              tilingScheme: tilingScheme,
+              rectangle: rectangle,
+              getFeatureInfoFormats: [
+                new GetFeatureInfoFormat(
+                  "text",
+                ),
+              ],
+            });
+            this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
+    }
     // Si la propriété swissBuildings a changé
     if (changedProperties.has('swissBuildings')) {
       // On parcourt la liste des primitives
