@@ -150,15 +150,10 @@ export class LayerPicker extends LitElement {
     _renderDropDown = () => {
         return html`
             <select id="feature-layer-menu" class="custom-select" name="feature-layer" @change=${this._selectFeatureLayer}>
-                <option value="" disabled selected>Choose a base layer</option>
-                <option value="https://wmts100.geo.admin.ch/1.0.0/ch.swisstopo.swissalti3d-reliefschattierung/default/current/4326/{z}/{x}/{y}.png">Hillshade</option>
-                <option value="https://wmts20.geo.admin.ch/1.0.0/ch.swisstopo.swissimage-product/default/current/4326/{z}/{x}/{y}.jpeg">Imagery</option>
-                <option value="https://wmts10.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-karte-farbe.3d/default/current/4326/{z}/{x}/{y}.jpeg">Vector</option>
             </select>
         `;
     }
-
-    
+ 
     firstUpdated() {
         // On itère sur tous les cesium viewer présents dans le document
         for (let i = 0; i < document.getElementsByTagName('cesium-viewer').length; i++) {
@@ -171,13 +166,16 @@ export class LayerPicker extends LitElement {
                 this.defaultTrees = true;
             }
         }
+        this._populateFeatureLayerMenu();
+    }
+
+    _populateFeatureLayerMenu = () => {
         const featureLayerMenu = this.shadowRoot.getElementById('feature-layer-menu');
         featureLayerMenu.length = 0;
         let defaultOption = document.createElement('option');
         defaultOption.text = 'Choose a feature layer';
         featureLayerMenu.add(defaultOption);
         featureLayerMenu.selectedIndex = 0;
-
         const url = '../static/Data/swisstopo_map_service.json';
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
@@ -204,11 +202,13 @@ export class LayerPicker extends LitElement {
             console.error('An error occurred fetching the JSON from ' + url);
         };
         request.send();
-
-
-        console.log(featureLayerMenu)
-
+        featureLayerMenu.addEventListener('change', function() {
+            console.log(featureLayerMenu);
+            let selectedOption = featureLayerMenu.options[featureLayerMenu.selectedIndex].textContent;
+            console.log(selectedOption);
+        });
     }
+        
     _selectFeatureLayer(e) {
 
         this.featureLayer = e.target.value;
