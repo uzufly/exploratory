@@ -210,7 +210,7 @@ export class CesiumViewer extends LitElement {
     this.ionAccessToken = null;
     this.swissTerrainProvider = false;
     this.imageryProvider = null;
-    this.featureLayers = null;
+    this.featureLayers = [];
     this.cesiumBaseURL = null;
     this.cameraAngle = null;
     this.baseLayer = undefined;
@@ -236,18 +236,14 @@ export class CesiumViewer extends LitElement {
       `;
   }
   _checkedFeatureLayers(e) {
-    const hasChanged = true;
     this.featureLayers = e.detail
-    console.log(this.featureLayers)
   }
   _checkedBaseLayer(e) {
-    console.log(e.detail)
     this.baseLayer = e.detail
   }
   _checkedBuildings(event) {
     const target = event.target;
     this.swissBuildings = target.swissBuildings;
-    console.log(this.swissBuildings)
   }
   _checkedTrees(event) {
     const target = event.target;
@@ -259,6 +255,7 @@ export class CesiumViewer extends LitElement {
       this.cesiumBaseURL,
       this.ionAccessToken
     );
+    
     this._viewer = this._createCesiumViewer(this.renderRoot);
   }
 
@@ -283,53 +280,44 @@ export class CesiumViewer extends LitElement {
   }
 
   updated(changedProperties) {
-    if(changedProperties.has('featureLayers')) {
-      // On enlève les couches de la liste qui correspondent aux couches de données
-      console.log(this._viewer.imageryLayers)
-      console.log(this.featureLayers.featureLayer)
-      
-      // const imageryLayersLength = this._viewer.imageryLayers.length;
-      // const lastLayer = this._viewer.imageryLayers.get(imageryLayersLength - 1);
-      // this._viewer.imageryLayers.remove(lastLayer);
-      
-      
-      //this._viewer.imageryLayers.removeAll();
-      if (this.featureLayers.service === "WMS" || this.featureLayers.service === "WMTS WMS") {
-      const wmsFeatureLayer =
-            new WebMapServiceImageryProvider({
-              url: "https://wms.geo.admin.ch/",
-              layers: this.featureLayers.featureLayer,
-              parameters: {
-                format: "image/png",
-                transparent: true,
-              },
-              minimumLevel: 8,
-              maximumLevel: 17,
-              tilingScheme: tilingScheme,
-              rectangle: rectangle,
-              getFeatureInfoFormats: [
-                new GetFeatureInfoFormat(
-                  "text",
-                ),
-              ],
-            });
-            this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
-            // this._viewer.imageryLayers.lowerToBottom(wmsFeatureLayer)
-      } if (this.featureLayers.service === "WMTS") {
-        const wmtsFeatureLayer =
-          new WebMapTileServiceImageryProvider({
-            url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers.featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
-            layer: this.featureLayers.featureLayer,
-            style: "default",
-            format: "image/png",
-            tileMatrixSetID: this.featureLayers.timestamp,
-            maximumLevel: 17,
-            tilingScheme: tilingScheme,
-            rectangle: rectangle
-          });
-          this._viewer.imageryLayers.addImageryProvider(wmtsFeatureLayer);
-      }
-    }
+    // if(changedProperties.has('featureLayers')) {  
+    //   //this._viewer.imageryLayers.removeAll();
+    //   if (this.featureLayers.service === "WMS" || this.featureLayers.service === "WMTS WMS") {
+    //   const wmsFeatureLayer =
+    //         new WebMapServiceImageryProvider({
+    //           url: "https://wms.geo.admin.ch/",
+    //           layers: this.featureLayers.featureLayer,
+    //           parameters: {
+    //             format: "image/png",
+    //             transparent: true,
+    //           },
+    //           minimumLevel: 8,
+    //           maximumLevel: 17,
+    //           tilingScheme: tilingScheme,
+    //           rectangle: rectangle,
+    //           getFeatureInfoFormats: [
+    //             new GetFeatureInfoFormat(
+    //               "text",
+    //             ),
+    //           ],
+    //         });
+    //         this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
+    //         // this._viewer.imageryLayers.lowerToBottom(wmsFeatureLayer)
+    //   } if (this.featureLayers.service === "WMTS") {
+    //     const wmtsFeatureLayer =
+    //       new WebMapTileServiceImageryProvider({
+    //         url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers.featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
+    //         layer: this.featureLayers.featureLayer,
+    //         style: "default",
+    //         format: this.featureLayers.format,
+    //         tileMatrixSetID: this.featureLayers.timestamp,
+    //         maximumLevel: 17,
+    //         tilingScheme: tilingScheme,
+    //         rectangle: rectangle
+    //       });
+    //       this._viewer.imageryLayers.addImageryProvider(wmtsFeatureLayer);
+    //   }
+    // }
     // Si la propriété swissBuildings a changé
     if (changedProperties.has('swissBuildings')) {
       // On parcourt la liste des primitives
@@ -363,6 +351,7 @@ export class CesiumViewer extends LitElement {
     } // … more side-effects! contained at least
   }
   _createCesiumViewer(container) {
+    console.log(this.featureLayers)
 
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -421,10 +410,13 @@ export class CesiumViewer extends LitElement {
     viewer.scene.primitives.add(swissTLM3D);
     viewer.scene.primitives.add(swissTREES);
     const imageryLayers = viewer.imageryLayers;
+    // const layers = this.getAttribute("feature-layers");
+    //   console.log(layers)
 
     if (this.featureLayers) {
       // importation des Feature Layers
       const layers = this.getAttribute("feature-layers");
+      console.log(layers)
       // On parse à travers les couches indiquées dans l'attribut feature-layers
       this.featureLayers = JSON.parse(layers);
       
@@ -453,6 +445,7 @@ export class CesiumViewer extends LitElement {
               url: "https://wms.geo.admin.ch/",
               layers: this.featureLayers[i].src,
               parameters: {
+                format: imageryFormat,
                 transparent: true,
               },
               minimumLevel: 8,
@@ -486,7 +479,7 @@ export class CesiumViewer extends LitElement {
     
 
     // On ajoute la couches des routes qui restera toujours visible
-    const wmtsLayer2 =
+    const swissRoads =
     new WebMapTileServiceImageryProvider({
       url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
       layer: "ch.swisstopo.swisstlm3d-strassen",
@@ -498,7 +491,7 @@ export class CesiumViewer extends LitElement {
       rectangle: rectangle
     });
 
-    imageryLayers.addImageryProvider(wmtsLayer2);
+    imageryLayers.addImageryProvider(swissRoads);
 
     return viewer;
   }

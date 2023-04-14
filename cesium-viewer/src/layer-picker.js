@@ -225,8 +225,7 @@ export class LayerPicker extends LitElement {
                     WMTS_format: WMTS_format,
                     timestamp: timestamp,
                     codeFournisseur: codeFournisseur,
-                    fournisseur: fournisseur
-                },
+                    },
             bubbles: true,
             composed: true,
         }));
