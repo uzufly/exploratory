@@ -122,48 +122,55 @@ export class LayerPicker extends LitElement {
     }
 
     _renderCheckBox = () => {
+        // Change renvoit si la checkbox est cochée ou non
+        // Checked renvoit si la checkbox est cochée ou non à l'initialisation
         return html`
             <label>
-                <input type="checkbox" @change=${this._toggleTerrain} ?checked=${this.swissTerrain}>
+                <input type="checkbox" name="toggle-terrain" value=${this.swissTerrain} @change=${this._toggleTerrain} .checked=${this.swissTerrain}>
                 Swiss Terrain
             </label>
             <label>
-                <input type="checkbox" @change=${this._toggleBuildings} ?checked=${this.swissBuildings}>
+                <input type="checkbox" name="toggle-buildings" value=${this.swissBuildings} @change=${this._toggleBuildings} .checked=${this.swissBuildings}>
                 Swiss Buildings
             </label>
             <label>
-                <input type="checkbox" @change=${this._toggleTrees} ?checked=${this.swissTrees}>
+                <input type="checkbox" name="toggle-trees" value=${this.swissTrees} @change=${this._toggleTrees} .checked=${this.swissTrees}>
                 Swiss Trees
             </label>
         `;
     }
+    _onChangeBaseLayer(e) {
 
-    async _onChangeBaseLayer(e) {
-        
-        await this.updateComplete;
         this.baseLayer = e.target.value;
         console.log(this.baseLayer)
         this.dispatchEvent(new CustomEvent("base-layer", {
             detail: this.baseLayer,
             bubbles: true,
-            composed: true
+            composed: true,
+            
         }));
     }
 
     _toggleTerrain(e) {
-
-        const essai = e.target.checked;
         //console.log('essai', essai)
-        this.swissTerrain = !this.swissTerrain;
+        this.swissTerrain = e.target.checked;
         //console.log(this.swissTerrain)
-        this.dispatchEvent(new Event("toggle-terrain", { detail: { checked: this.swissTerrain}}));
+        this.dispatchEvent(new Event("toggle-terrain", {
+            detail: this.swissTerrain
+        }));
         // console.log(this.dispatchEvent(new CustomEvent("toggle-terrain", this.swissTerrain)))
     }   
     _toggleBuildings(e) {
 
         this.swissBuildings = e.target.checked;
+        const detail = {swissBuildings: this.swissBuildings};
         console.log(this.swissBuildings)
-        this.dispatchEvent(new CustomEvent("toggle-buildings", { detail: { checked: this.swissBuildings}}));
+        this.dispatchEvent(new CustomEvent("checked", {
+            detail,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        }));
     }
     _toggleTrees(e) {
         this.swissTrees = e.target.checked;

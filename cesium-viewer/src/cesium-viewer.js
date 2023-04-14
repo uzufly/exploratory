@@ -224,13 +224,19 @@ export class CesiumViewer extends LitElement {
 
   renderSlotted() {
     return html`
-      <div part="slotted" @base-layer=${this._checkedHandler}><slot></slot>
-        </div>`;
+      <div part="slotted" @base-layer=${this._checkBaseLayer}><slot></slot></div>
+      <div part="slotted" @checked=${this._checkBuildings}><slot></slot></div>
+      `;
   }
 
-  _checkedHandler(e) {
+  _checkBaseLayer(e) {
     console.log(e.detail)
     this.baseLayer = e.detail
+  }
+
+  _checkBuildings(e) {
+    console.log(e.detail.swissBuildings)
+    this.swissBuildings = e.detail
   }
 
   firstUpdated() {
@@ -243,12 +249,14 @@ export class CesiumViewer extends LitElement {
     // this.addEventListener('toggle-buildings', this.toggleBuildings);
     // this.addEventListener('toggle-trees', this.toggleTrees);
   }
+
   willUpdate(changedProperties) {
     console.log(changedProperties)
 
     // Si on détecte un changement dans la propriété baseLayer
     if (changedProperties.has('baseLayer')) {
       console.log(this.baseLayer)
+      console.log(this.swissBuildings)
       // On enlève la première couche de la liste qui correspond au fond de carte
       const firstLayer = this._viewer.imageryLayers.get(0);
       this._viewer.imageryLayers.remove(firstLayer);
@@ -264,7 +272,26 @@ export class CesiumViewer extends LitElement {
       // On ajoute le fond de carte et on le place en première position
       this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
     }
+
+    
   }
+
+  updated(changedProperties) {
+    if (changedProperties.has('swissBuildings')) {  
+      console.log(this.swissBuildings)
+      
+      if (this.swissBuildings) {
+        // this._viewer.scene.primitives.removeAll();
+        const swissBuildings3D = new Cesium3DTileset({
+          url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
+          shadows: ShadowMode.DISABLED,
+        });
+        this._viewer.scene.primitives.add(swissBuildings3D);
+      }
+    }
+  }
+
+    
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
     // this is the way the Cesium Viewer requires it to resolve its static resources
