@@ -48,7 +48,9 @@ const rectangle = Rectangle.fromDegrees(
   45.35600133779394,
   11.477436312994008,
   48.27502358353741
-)
+);
+const swissTLM3DURL = 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json';
+const swissTreesURL = 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json';
 
 /**
  * A `‹custom-element›` Custom Element, based on `LitElement`.
@@ -208,7 +210,7 @@ export class CesiumViewer extends LitElement {
     this.ionAccessToken = null;
     this.swissTerrainProvider = false;
     this.imageryProvider = null;
-    this.featureLayers = [];
+    this.featureLayers = null;
     this.cesiumBaseURL = null;
     this.cameraAngle = null;
     this.baseLayer = undefined;
@@ -226,45 +228,26 @@ export class CesiumViewer extends LitElement {
   renderSlotted() {
     return html`
       <div part="slotted" 
-        @base-layer=${this._checkBaseLayer} 
-        @toggle-buildings=${this._checkBuildings}
-        @toggle-trees=${this._checkTrees}
+        @base-layer=${this._checkedBaseLayer} 
+        @toggle-buildings=${this._checkedBuildings}
+        @toggle-trees=${this._checkedTrees}
       ><slot></slot></div>
       `;
   }
-
-  updateCheckBoxes() {
-    // const checkedLayers = this.shadowRoot.querySelector("#layer-picker")
-    // console.log('checkedLayers', checkedLayers)
-    // checkedLayers.swissBuildings = this.swissBuildings
-    // checkedLayers.swissTrees = this.swissTrees
-  }
-
-  _checkBaseLayer(e) {
+  _checkedBaseLayer(e) {
     console.log(e.detail)
     this.baseLayer = e.detail
   }
-  _checkBuildings(event) {
+  _checkedBuildings(event) {
     const target = event.target;
     this.swissBuildings = target.swissBuildings;
   }
-  _checkTrees(event) {
+  _checkedTrees(event) {
     const target = event.target;
     this.swissTrees = target.swissTrees;
   }
-  default_swissBuildingsChecked() {
-    return  this.swissBuildings;
-}
 
   firstUpdated() {
-    console.log('swissBuildings firstUpdated', this.swissBuildings)
-    this.dispatchEvent(new CustomEvent('swiss-buildings', {
-      detail: 
-        this.swissBuildings,
-        bubbles: true,
-        composed: true 
-    }));
-    
     CesiumViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
       this.ionAccessToken
@@ -292,17 +275,22 @@ export class CesiumViewer extends LitElement {
     }
   }
 
-  updated(changedProperties, swissTLM3D) {
-    if (changedProperties.has('swissBuildings')) {  
+  updated(changedProperties) {
+    // Si la propriété swissBuildings a changé
+    if (changedProperties.has('swissBuildings')) {
+      // On parcourt la liste des primitives
       for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
-        if (this._viewer.scene.primitives._primitives[i]._url === "https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json") {
+        // Si la primitive correspond à la couche des bâtiments
+        if (this._viewer.scene.primitives._primitives[i]._url === swissTLM3DURL) {
+          // On affiche ou on cache la couche en fonction de la valeur de la propriété
           this._viewer.scene.primitives._primitives[i].show = this.swissBuildings;
         }
       }
     }
+    // Same pour les arbres
     if (changedProperties.has('swissTrees')) {
       for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
-        if (this._viewer.scene.primitives._primitives[i]._url === "https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json") {
+        if (this._viewer.scene.primitives._primitives[i]._url === swissTreesURL) {
           this._viewer.scene.primitives._primitives[i].show = this.swissTrees;
         }
       }
@@ -321,8 +309,6 @@ export class CesiumViewer extends LitElement {
     } // … more side-effects! contained at least
   }
   _createCesiumViewer(container) {
-    
-    
 
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -357,19 +343,20 @@ export class CesiumViewer extends LitElement {
       }
     });
 
-    const primitivesCollection = new PrimitiveCollection()
-
     const swissTLM3D = new Cesium3DTileset({
-      url: 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json',
+      url: swissTLM3DURL,
       shadows: ShadowMode.DISABLED,
       show: this.swissBuildings,
     });
     const swissTREES = new Cesium3DTileset({
-      url: 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json',
+      url: swissTreesURL,
       shadows: ShadowMode.DISABLED,
       show: this.swissTrees,
     });
 
+    // Style des bâtiments
+    // On attend que la couche soit chargée pour appliquer le style
+    // On applique ici un style blanc transparent, ce qui ne change pas la couleur des bâtiments
     swissTLM3D.readyPromise.then(function(swissTLM3D) {
       var style = new Cesium3DTileStyle({
         color: 'color("GHOSTWHITE", 0.9)'
@@ -379,62 +366,73 @@ export class CesiumViewer extends LitElement {
 
     viewer.scene.primitives.add(swissTLM3D);
     viewer.scene.primitives.add(swissTREES);
-
-    // importation des Feature Layers
-    const layers = this.getAttribute("feature-layers");
-    this.featureLayers = JSON.parse(layers);
-    console.log(this.featureLayers)
-    const featureLayerArrayLength = this.featureLayers.length;
     const imageryLayers = viewer.imageryLayers;
-    let imageryFormat = "image/png";
-    let imageryTimestamp = "current";
 
-    for (let i = 0; i < featureLayerArrayLength; i++) {
-      if (this.featureLayers[i].format && this.featureLayers[i].format !== "image/png") {
-        imageryFormat = this.featureLayers[i].format
-      }
-      if (this.featureLayers[i].timestamp && this.featureLayers[i].timestamp !== "current") {
-        imageryTimestamp = this.featureLayers[i].timestamp
-      }
-      if (this.featureLayers[i].type === "WMS" | this.featureLayers[i].type === "wms") {
+    if (this.featureLayers) {
+      // importation des Feature Layers
+      const layers = this.getAttribute("feature-layers");
+      // On parse à travers les couches indiquées dans l'attribut feature-layers
+      this.featureLayers = JSON.parse(layers);
+      
+      const featureLayerArrayLength = this.featureLayers.length;
+      
+      let imageryFormat = "image/png";
+      let imageryTimestamp = "current";
 
-        const wmsFeatureLayer =
-          new WebMapServiceImageryProvider({
-            url: "https://wms.geo.admin.ch/",
-            layers: this.featureLayers[i].src,
-            parameters: {
-              format: imageryFormat,
-              transparent: true,
-            },
-            minimumLevel: 8,
+      // On parcourt les couches
+      for (let i = 0; i < featureLayerArrayLength; i++) {
+        // Si le format est différent de image/png (99% des couches sont en image/png)
+        // On applique le format indiqué par l'utilisateur dans l'attribut feature-layers
+        if (this.featureLayers[i].format && this.featureLayers[i].format !== "image/png") {
+          imageryFormat = this.featureLayers[i].format
+        }
+        // Si le timestamp est différent de current
+        // On applique le timestamp indiqué par l'utilisateur dans l'attribut feature-layers
+        if (this.featureLayers[i].timestamp && this.featureLayers[i].timestamp !== "current") {
+          imageryTimestamp = this.featureLayers[i].timestamp
+        }
+        // On différencie l'importation des couches WMS et WMTS
+        if (this.featureLayers[i].type === "WMS" | this.featureLayers[i].type === "wms") {
+
+          const wmsFeatureLayer =
+            new WebMapServiceImageryProvider({
+              url: "https://wms.geo.admin.ch/",
+              layers: this.featureLayers[i].src,
+              parameters: {
+                format: imageryFormat,
+                transparent: true,
+              },
+              minimumLevel: 8,
+              maximumLevel: 17,
+              tilingScheme: tilingScheme,
+              rectangle: rectangle,
+              getFeatureInfoFormats: [
+                new GetFeatureInfoFormat(
+                  "text",
+                ),
+              ],
+            });
+          imageryLayers.addImageryProvider(wmsFeatureLayer);
+
+        } else if (this.featureLayers[i].type === "WMTS" | this.featureLayers[i].type === "wmts") {
+          const wmtsFeatureLayer =
+          new WebMapTileServiceImageryProvider({
+            url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers[i].src}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
+            layer: this.featureLayers[i].src,
+            style: "default",
+            format: imageryFormat,
+            tileMatrixSetID: imageryTimestamp,
             maximumLevel: 17,
             tilingScheme: tilingScheme,
-            rectangle: rectangle,
-            getFeatureInfoFormats: [
-              new GetFeatureInfoFormat(
-                "text",
-              ),
-            ],
+            rectangle: rectangle
           });
-        //const imageryLayers = viewer.imageryLayers;
-        imageryLayers.addImageryProvider(wmsFeatureLayer);
-
-      } else if (this.featureLayers[i].type === "WMTS" | this.featureLayers[i].type === "wmts") {
-        const wmtsFeatureLayer =
-        new WebMapTileServiceImageryProvider({
-          url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers[i].src}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png`,
-          layer: this.featureLayers[i].src,
-          style: "default",
-          format: imageryFormat,
-          tileMatrixSetID: imageryTimestamp,
-          maximumLevel: 17,
-          tilingScheme: tilingScheme,
-          rectangle: rectangle
-        });
-        //imageryLayers.add(wmtsFeatureLayer);
+          imageryLayers.addImageryProvider(wmtsFeatureLayer);
+        }
       }
     }
+    
 
+    // On ajoute la couches des routes qui restera toujours visible
     const wmtsLayer2 =
     new WebMapTileServiceImageryProvider({
       url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",

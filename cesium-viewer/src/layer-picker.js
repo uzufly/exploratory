@@ -141,13 +141,18 @@ export class LayerPicker extends LitElement {
 
     
     firstUpdated() {
-        console.log(document.getElementsByTagName('cesium-viewer').length)
+        // On itère sur tous les cesium viewer présents dans le document
         for (let i = 0; i < document.getElementsByTagName('cesium-viewer').length; i++) {
+            // Si le cesium viewer a l'attribut swiss-buildings, on check la checkbox
             if (document.getElementsByTagName('cesium-viewer')[i].hasAttribute('swiss-buildings')) {
                 this.defaultBuildings = true;
             }
+            // On fait la même chose pour les arbres
+            if (document.getElementsByTagName('cesium-viewer')[i].hasAttribute('swiss-trees')) {
+                this.swissTrees = true;
+            }
         }
-      }
+    }
 
     _onChangeBaseLayer(e) {
         this.baseLayer = e.target.value;
@@ -156,7 +161,6 @@ export class LayerPicker extends LitElement {
             detail: this.baseLayer,
             bubbles: true,
             composed: true,
-            
         }));
     }
 
@@ -168,7 +172,8 @@ export class LayerPicker extends LitElement {
             detail: this.swissTerrain
         }));
         // console.log(this.dispatchEvent(new CustomEvent("toggle-terrain", this.swissTerrain)))
-    }   
+    }
+    // Fonction pour toggle on and off les bâtiments
     _toggleBuildings(event) {
         const swissBuildings = event.target.checked;
         const hasChanged = this.swissBuildings !== swissBuildings;
@@ -181,6 +186,7 @@ export class LayerPicker extends LitElement {
             }));
         }
     }
+    // Fonction pour toggle on and off les arbres
     _toggleTrees(event) {
         const swissTrees = event.target.checked;
         const hasChanged = this.swissTrees !== swissTrees;
