@@ -233,26 +233,38 @@ export class CesiumViewer extends LitElement {
       `;
   }
 
+  updateCheckBoxes() {
+    // const checkedLayers = this.shadowRoot.querySelector("#layer-picker")
+    // console.log('checkedLayers', checkedLayers)
+    // checkedLayers.swissBuildings = this.swissBuildings
+    // checkedLayers.swissTrees = this.swissTrees
+  }
+
   _checkBaseLayer(e) {
     console.log(e.detail)
     this.baseLayer = e.detail
   }
-
   _checkBuildings(event) {
     const target = event.target;
-    console.log(target)
     this.swissBuildings = target.swissBuildings;
-    console.log(this.swissBuildings)
-    // console.log(e.detail.swissBuildings)
-    // this.swissBuildings = e.detail
   }
   _checkTrees(event) {
     const target = event.target;
-    console.log(target)
     this.swissTrees = target.swissTrees;
   }
+  default_swissBuildingsChecked() {
+    return  this.swissBuildings;
+}
 
   firstUpdated() {
+    console.log('swissBuildings firstUpdated', this.swissBuildings)
+    this.dispatchEvent(new CustomEvent('swiss-buildings', {
+      detail: 
+        this.swissBuildings,
+        bubbles: true,
+        composed: true 
+    }));
+    
     CesiumViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
       this.ionAccessToken
@@ -261,8 +273,6 @@ export class CesiumViewer extends LitElement {
   }
 
   willUpdate(changedProperties) {
-    console.log(changedProperties)
-
     // Si on détecte un changement dans la propriété baseLayer
     if (changedProperties.has('baseLayer')) {
       // On enlève la première couche de la liste qui correspond au fond de carte
@@ -280,8 +290,6 @@ export class CesiumViewer extends LitElement {
       // On ajoute le fond de carte et on le place en première position
       this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
     }
-
-    
   }
 
   updated(changedProperties, swissTLM3D) {
@@ -314,6 +322,8 @@ export class CesiumViewer extends LitElement {
   }
   _createCesiumViewer(container) {
     
+    
+
     let terrainProvider;
     if (this.swissTerrainProvider) {
       terrainProvider = new CesiumTerrainProvider({
@@ -330,7 +340,6 @@ export class CesiumViewer extends LitElement {
       }),
     });
 
-    
     // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
   
@@ -369,7 +378,6 @@ export class CesiumViewer extends LitElement {
     });
 
     viewer.scene.primitives.add(swissTLM3D);
-  
     viewer.scene.primitives.add(swissTREES);
 
     // importation des Feature Layers

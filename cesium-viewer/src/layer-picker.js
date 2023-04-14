@@ -3,26 +3,25 @@ import {
     CesiumTerrainProvider
 } from "cesium";
 
-console.log(window.location.pathname);
-
 export class LayerPicker extends LitElement {
 
-    static properties = {
-        swissTerrain: { type: Boolean },
-        // swissBuildings: { type: Boolean },
-        // swissTrees: { type: Boolean },
-        hillshadeBaseLayer: { type: String},
-        imageryBaseLayer: {type: String},
-        vectorBaseLayer: {type: String},
-    };
+    static get properties() {
+        return {
+            defaultBuildings: {type: Boolean},
+            hillshadeBaseLayer: { type: String},
+            imageryBaseLayer: {type: String},
+            vectorBaseLayer: {type: String},
+        };
+    }
 
     constructor() {
         super();
+        this.defaultBuildings = false,
         this.swissTerrain = true;
-        this.swissBuildings = true;
-        this.swissTrees = true;
         this.baseLayer = ''
     }
+
+    
     static get styles(){
 
         return [
@@ -103,7 +102,7 @@ export class LayerPicker extends LitElement {
 
     render() {
         return html`
-            <div class="layer-picker">
+            <div class="layer-picker" id="layer-picker">
                 ${this._renderCheckBox()}
                 ${this._renderBaseLayerPicker()}
             </div>
@@ -126,29 +125,31 @@ export class LayerPicker extends LitElement {
         // Checked renvoit si la checkbox est cochée ou non à l'initialisation
         return html`
             <label>
-                <input type="checkbox" name="toggle-terrain" value=${this.swissTerrain} @change=${this._toggleTerrain} .checked=${this.swissTerrain}>
+                <input type="checkbox" name="toggle-terrain" @change=${this._toggleTerrain} .checked=${this.swissTerrain}>
                 Swiss Terrain
             </label>
             <label>
-                <input type="checkbox" name="toggle-buildings" value=${this.swissBuildings} @change=${this._toggleBuildings} .checked=${this.swissBuildings}>
+                <input type="checkbox" name="toggle-buildings" @change=${this._toggleBuildings} .checked=${this.defaultBuildings}>
                 Swiss Buildings
             </label>
             <label>
-                <input type="checkbox" name="toggle-trees" value=${this.swissTrees} @change=${this._toggleTrees} .checked=${this.swissTrees}>
+                <input type="checkbox" name="toggle-trees" @change=${this._toggleTrees} .checked=${this.swissTrees}>
                 Swiss Trees
             </label>
         `;
     }
 
-    firstUpdated() {
-        // this.addEventListener('toggle-terrain', this.toggleTerrain);
-        
     
-        // this.addEventListener('toggle-buildings', this.toggleBuildings);
-        // this.addEventListener('toggle-trees', this.toggleTrees);
+    firstUpdated() {
+        console.log(document.getElementsByTagName('cesium-viewer').length)
+        for (let i = 0; i < document.getElementsByTagName('cesium-viewer').length; i++) {
+            if (document.getElementsByTagName('cesium-viewer')[i].hasAttribute('swiss-buildings')) {
+                this.defaultBuildings = true;
+            }
+        }
       }
-    _onChangeBaseLayer(e) {
 
+    _onChangeBaseLayer(e) {
         this.baseLayer = e.target.value;
         console.log(this.baseLayer)
         this.dispatchEvent(new CustomEvent("base-layer", {
