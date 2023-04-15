@@ -33,12 +33,12 @@ export class LayerPicker extends LitElement {
                 z-index: 4;
                 position: absolute;
                 display: grid;
-                grid-template-columns: 33% 33% 33%;
-                grid-template-rows: 33% 33% 33%;
+                grid-template-columns: 1/3 1/3 1/3;
+                grid-template-rows: auto auto auto;
                 right: 1rem;
                 top: 6rem;
-                width: 300px;
-                height: 200px;
+                gap: 10px;
+                margin: 4px;
                 background-color: rgba(255,255,255,.68);
                 backdrop-filter: blur(20px);
                 border-radius: 10px;
@@ -103,10 +103,24 @@ export class LayerPicker extends LitElement {
                 grid-column-end: span 3;
                 height: 30px;
             }
-            .layer-displayed {
+            .layers-displayed {
                 grid-column-start: 1;
                 grid-column-end: span 3;
             }
+            .layers-displayed span {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-size: 1.2rem;
+              font-weight: bold;
+            }
+            .layer-displayed {
+              padding: 4px;
+              margin: 4px;
+              background-color: rgba(120,120,120,.68);
+              border-radius: 8px;
+            }
+            .
           `,
           ];
     }
@@ -161,8 +175,8 @@ export class LayerPicker extends LitElement {
 
     _renderLayerDisplayed = () => {
         return html`
-            <div class="layer-displayed">
-                <p>Layer displayed :</p>
+            <div class="layers-displayed">
+                <span>Layer displayed :</span>
             </div>
         `;
     }
@@ -216,32 +230,20 @@ export class LayerPicker extends LitElement {
         };
         request.send();
 
-        let selectedValuesDiv = this.shadowRoot.querySelector('.layer-displayed');
-
+        let selectedValuesDiv = this.shadowRoot.querySelector('.layers-displayed');
         let selectedValues = [];
         featureLayerMenu.addEventListener('change', function() {
             console.log(featureLayerMenu);
-            let selectedOption = featureLayerMenu.options[featureLayerMenu.selectedIndex].textContent;
-
-            // On regarde si la couche sélectionnée n'est pas déjà dans l'array
-            if (!selectedValues.includes(selectedOption)) {
-                // Si elle n'est pas dans l'array, on l'ajoute
-                selectedValues.push(selectedOption);
+            let selectedOption = featureLayerMenu.options[featureLayerMenu.selectedIndex];
+            let selectedText = selectedOption.textContent;
+            if (!selectedValues.includes(selectedText)) {
+                selectedValues.push(selectedText);
             }
-
-            // let list = document.createElement('ul');
-            // for (let i = 0; i < selectedValues.length; i++) {
-            //     let item = document.createElement('li');
-            //     item.textContent = selectedValues[i];
-            //     list.appendChild(item);
-            // }
-            // selectedValuesDiv.appendChild(list);
-
-
-            selectedValuesDiv.innerHTML = `<p>Layer displayed : ${selectedValues}</p></br>`;
-
-
-            console.log(selectedOption);
+            selectedValuesDiv.innerHTML = '';
+            selectedValues.forEach(function(value) {
+                selectedValuesDiv.innerHTML += `<div class="layer-displayed">${value}</div>`;
+            });
+            // selectedValuesDiv.innerHTML += `<div class="layer-displayed">${selectedOption}</div>`;
         });
     }
         
