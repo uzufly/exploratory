@@ -1,7 +1,7 @@
 {
-  "name": "@uzufly/custom-element-element",
-  "version": "0.1.0",
-  "description": "Boilerplate for creating a ‹custom-element› Web Component",
+  "name": "@uzufly/cesium-layer-picker",
+  "version": "0.2.0",
+  "description": "Cesium layer picker with swisstopo layers",
   "keywords": [
     "custom-element",
     "web-components",
@@ -14,8 +14,8 @@
     "registry": "https://npm.pkg.github.com"
   },
   "type": "module",
-  "module": "dist/custom-element.js",
-  "source": "src/custom-element.js",
+  "module": "dist/cesium-viewer.js",
+  "source": "src/cesium-viewer.js",
   "files": [
     "dist"
   ],
