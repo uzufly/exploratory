@@ -262,87 +262,109 @@ export class CesiumViewer extends LitElement {
   willUpdate(changedProperties) {
     // Si on détecte un changement dans la propriété baseLayer
     if (changedProperties.has('baseLayer')) {
-      // On enlève la première couche de la liste qui correspond au fond de carte
-      const firstLayer = this._viewer.imageryLayers.get(0);
-      this._viewer.imageryLayers.remove(firstLayer);
-      // On définit les paramètres du fond de carte à ajouter
-      const baseLayer =
-        new UrlTemplateImageryProvider({
-          url: this.baseLayer,
-          minimumLevel: 8,
-          maximumLevel: 17,
-          tilingScheme: tilingScheme,
-          rectangle: rectangle
-        });
-      // On ajoute le fond de carte et on le place en première position
-      this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
+      // On met à jour le fond de carte
+      this._updateBaseLayer(this.baseLayer);
     }
   }
 
   updated(changedProperties) {
     if(changedProperties.has('featureLayers')) {  
       //this._viewer.imageryLayers.removeAll();
-      if (this.featureLayers.service === "WMS" || this.featureLayers.service === "WMTS WMS") {
-      const wmsFeatureLayer =
-            new WebMapServiceImageryProvider({
-              url: "https://wms.geo.admin.ch/",
-              layers: this.featureLayers.featureLayer,
-              parameters: {
-                format: "image/png",
-                transparent: true,
-              },
-              minimumLevel: 8,
-              maximumLevel: 17,
-              tilingScheme: tilingScheme,
-              rectangle: rectangle,
-              getFeatureInfoFormats: [
-                new GetFeatureInfoFormat(
-                  "text",
-                ),
-              ],
-            });
-            this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
-            // this._viewer.imageryLayers.lowerToBottom(wmsFeatureLayer)
-      } if (this.featureLayers.service === "WMTS") {
-        console.log(this.featureLayers.WMTS_format)
-        if (this.featureLayers.WMTS_format !== "png") {
-          this.featureLayers.WMTS_format = "jpeg"
+      this._updateFeatureLayers(this.featureLayers);
+    }
+    // Si la propriété swissBuildings a changé
+    if (changedProperties.has('swissBuildings')) {
+      // On parcourt la liste des primitives
+      this._updateSwissBuildings();
+    }
+    // Same pour les arbres
+    if (changedProperties.has('swissTrees')) {
+      this._updateSwissTrees();
+    }
+  }
+
+  _updateBaseLayer (updatedBaseLayer) {
+    // On enlève la première couche de la liste qui correspond au fond de carte
+    const firstLayer = this._viewer.imageryLayers.get(0);
+    this._viewer.imageryLayers.remove(firstLayer);
+    // On définit les paramètres du fond de carte à ajouter
+    const baseLayer =
+      new UrlTemplateImageryProvider({
+        url: updatedBaseLayer,
+        minimumLevel: 8,
+        maximumLevel: 17,
+        tilingScheme: tilingScheme,
+        rectangle: rectangle
+      });
+    // On ajoute le fond de carte et on le place en première position
+    this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
+  }
+
+  _updateFeatureLayers (featureLayers) {
+    // On ajoute les couches de données
+      if (featureLayers.service === "WMS" || featureLayers.service === "WMTS WMS") {
+        const wmsFeatureLayer =
+          new WebMapServiceImageryProvider({
+            url: "https://wms.geo.admin.ch/",
+            layers: featureLayers.featureLayer,
+            parameters: {
+              format: "image/png",
+              transparent: true,
+            },
+            minimumLevel: 8,
+            maximumLevel: 17,
+            tilingScheme: tilingScheme,
+            rectangle: rectangle,
+            getFeatureInfoFormats: [
+              new GetFeatureInfoFormat(
+                "text",
+              ),
+            ],
+          });
+        this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
+      }
+
+      if (featureLayers.service === "WMTS") {
+        if (featureLayers.WMTS_format !== "png") {
+          featureLayers.WMTS_format = "jpeg"
         }
         const wmtsFeatureLayer =
           new WebMapTileServiceImageryProvider({
             
-            url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers.featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.${this.featureLayers.WMTS_format}`,
-            layer: this.featureLayers.featureLayer,
+            url: `https://wmts.geo.admin.ch/1.0.0/${featureLayers.featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.${featureLayers.WMTS_format}`,
+            layer: featureLayers.featureLayer,
             style: "default",
-            format: `image/${this.featureLayers.WMTS_format}`,
-            tileMatrixSetID: this.featureLayers.timestamp,
+            format: `image/${featureLayers.WMTS_format}`,
+            tileMatrixSetID: featureLayers.timestamp,
             maximumLevel: 17,
             tilingScheme: tilingScheme,
             rectangle: rectangle
           });
           this._viewer.imageryLayers.addImageryProvider(wmtsFeatureLayer);
       }
-    }
-    // Si la propriété swissBuildings a changé
-    if (changedProperties.has('swissBuildings')) {
-      // On parcourt la liste des primitives
-      for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
-        // Si la primitive correspond à la couche des bâtiments
-        if (this._viewer.scene.primitives._primitives[i]._url === swissTLM3DURL) {
-          // On affiche ou on cache la couche en fonction de la valeur de la propriété
-          this._viewer.scene.primitives._primitives[i].show = this.swissBuildings;
-        }
+  }
+
+  _updateSwissBuildings() {
+    // On parcourt la liste des primitives
+    for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
+      // Si la primitive correspond à la couche des bâtiments
+      if (this._viewer.scene.primitives._primitives[i]._url === swissTLM3DURL) {
+        // On affiche ou on cache la couche en fonction de la valeur de la propriété
+        this._viewer.scene.primitives._primitives[i].show = this.swissBuildings;
       }
     }
-    // Same pour les arbres
-    if (changedProperties.has('swissTrees')) {
-      for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
-        if (this._viewer.scene.primitives._primitives[i]._url === swissTreesURL) {
-          this._viewer.scene.primitives._primitives[i].show = this.swissTrees;
-        }
+  }
+
+  _updateSwissTrees() {
+    // On parcourt la liste des primitives
+    for (let i = 0; i < this._viewer.scene.primitives._primitives.length; i++) {
+      // Si la primitive correspond à la couche des arbres
+      if (this._viewer.scene.primitives._primitives[i]._url === swissTreesURL) {
+        // On affiche ou on cache la couche en fonction de la valeur de la propriété
+        this._viewer.scene.primitives._primitives[i].show = this.swissTrees;
       }
     }
-  } 
+  }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
     // this is the way the Cesium Viewer requires it to resolve its static resources
@@ -355,6 +377,7 @@ export class CesiumViewer extends LitElement {
       Ion.defaultAccessToken = ionAccessToken;
     } // … more side-effects! contained at least
   }
+
   _createCesiumViewer(container) {
     console.log(this.featureLayers)
 
