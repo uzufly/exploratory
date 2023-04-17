@@ -277,11 +277,6 @@ export class LayerPicker extends LitElement {
                 item.draggable = true;
                 item.ondragstart = e => {
                     current = item;
-                    for (let it of items) {
-                        if (it != current) {
-                            it.classList.add('hint');
-                        }
-                    }
                 };
                 // on ajoute la classe active à l'élément draggé
                 item.ondragenter = e => {
@@ -292,10 +287,11 @@ export class LayerPicker extends LitElement {
                 // on retire la classe active à l'élément draggé
                 item.ondragleave = () => item.classList.remove("active");
                 // on retire la classe active et hint à l'élément previously draggé
-                item.ondragend = () => { for (let it of items) { 
-                    it.classList.remove('hint');
-                    it.classList.remove('active');
-                }};
+                item.ondragend = () => { 
+                    for (let it of items) { 
+                        it.classList.remove('active');
+                    }
+                };
                 item.ondragover = e => { e.preventDefault(); };
                 // On change la place de l'élément draggé avec l'élément précédant
                 item.ondrop = e => {
