@@ -237,7 +237,6 @@ export class LayerPicker extends LitElement {
                     option.text = data[i].Description;
                     option.value = data[i].layerName;
                     option.service = data[i].Service;
-
                     option.WMTS_format = data[i].WMTS_format;
                     option.timestamp = data[i].Timestamp;
                     option.code_fournisseur = data[i].Code_fournisseur;
@@ -274,40 +273,44 @@ export class LayerPicker extends LitElement {
             });
             let items = selectedValuesDiv.getElementsByTagName('li'), current = null;
             
-            for (let i of items) {
-                i.draggable = true;
-                i.ondragstart = e => {
-                    current = i;
+            for (let item of items) {
+                item.draggable = true;
+                item.ondragstart = e => {
+                    current = item;
                     for (let it of items) {
                         if (it != current) {
                             it.classList.add('hint');
                         }
                     }
                 };
-                i.ondragenter = e => {
-                    if (i != current) {
-                        i.classList.add('active');
+                // on ajoute la classe active à l'élément draggé
+                item.ondragenter = e => {
+                    if (item != current) {
+                        item.classList.add('active');
                     }
                 };
-                i.ondragleave = () => i.classList.remove("active");
-                i.ondragend = () => { for (let it of items) { 
+                // on retire la classe active à l'élément draggé
+                item.ondragleave = () => item.classList.remove("active");
+                // on retire la classe active et hint à l'élément previously draggé
+                item.ondragend = () => { for (let it of items) { 
                     it.classList.remove('hint');
                     it.classList.remove('active');
                 }};
-                i.ondragover = e => { e.preventDefault(); };
-                i.ondrop = e => {
+                item.ondragover = e => { e.preventDefault(); };
+                // On change la place de l'élément draggé avec l'élément précédant
+                item.ondrop = e => {
                     e.preventDefault();
-                    if (i != current) {
+                    if (item != current) {
                         let currentpos = 0, droppedpos = 0;
                         for (let it=0; it<items.length; it++) {
                             if (current == items[it]) {currentpos = it;}
-                            if (i == items[it]) {droppedpos = it;}
+                            if (item == items[it]) {droppedpos = it;}
                         }
                         if (currentpos < droppedpos) {
-                            i.parentNode.insertBefore(current, i.nextSibling);
+                            item.parentNode.insertBefore(current, item.nextSibling);
                         }
                         else {
-                            i.parentNode.insertBefore(current, i);
+                            item.parentNode.insertBefore(current, item);
                         }
 
                     }
