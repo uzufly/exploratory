@@ -192,7 +192,7 @@ export class LayerPicker extends LitElement {
         return html`
             <div class="layers-displayed">
                 <h3>Layer displayed :</h3>
-                <ul class="draggable-list">
+                <ul class="draggable-list" @change=${this._populateDraggableMenu}>
                     
                 </ul>
             </div>
@@ -252,25 +252,41 @@ export class LayerPicker extends LitElement {
         this._populateDraggableMenu(featureLayerMenu, selectedValuesDiv);
     }
 
+
+
     _populateDraggableMenu(featureLayersDraggable, selectedValuesDiv) {
       //const featureLayersDraggable = this.shadowRoot.getElementById('feature-layer-menu');
       if (featureLayersDraggable) {
 
         let selectedValues = [];
+
         featureLayersDraggable.addEventListener('change', function() {
             console.log(featureLayersDraggable);
             let selectedOption = featureLayersDraggable.options[featureLayersDraggable.selectedIndex];
+            // Texte de l'option sélectionnée
             let selectedText = selectedOption.textContent;
-            if (!selectedValues.includes(selectedText)) {
-                selectedValues.push(selectedText);
+            // Valeur de l'option sélectionnée pour le data-value
+            let selectedValue = selectedOption.value;
+            // On créé un objet avec le texte et la valeur de la couche sélectionnée
+            const selectedObject = {
+                text: selectedText,
+                value: selectedValue
             }
+            // Si notre array ne contient pas déjà cet objet
+            if (!selectedValues.some(e => e.value === selectedObject.value)) {
+                selectedValues.push(selectedObject);
+            }
+            // On l'ajoute à la liste
             selectedValuesDiv.innerHTML = '';
+            console.log('selectedValues', selectedValues)
             selectedValues.forEach(function(value) {
                 selectedValuesDiv.innerHTML += `
-                <li class="item">
-                   ${value}
+                <li class="item" data-value="${value.value}">
+                   ${value.text}
                 </li>`;
             });
+
+            // Fonction pour la liste draggable
             let items = selectedValuesDiv.getElementsByTagName('li'), current = null;
             
             for (let item of items) {
@@ -308,14 +324,24 @@ export class LayerPicker extends LitElement {
                         else {
                             item.parentNode.insertBefore(current, item);
                         }
-
-                    }
+                        console.log(current)
+                        console.log(droppedpos)
+                        
+                        // On dispatch le nom de la couche et son index
+                        this.dispatchEvent(new CustomEvent("layer-order", {
+                            detail: {layerName: current.getAttribute('data-value'),
+                                    index: droppedpos},
+                            bubbles: true,
+                            composed: true
+                        }));
+                    }             
                 };
+               
             }
+            
         });
     }
     }
-  
     _selectFeatureLayer(e) {
         this.featureLayer = e.target.value;
         let service = e.target.options[e.target.selectedIndex].service;
@@ -323,10 +349,19 @@ export class LayerPicker extends LitElement {
         let timestamp = e.target.options[e.target.selectedIndex].timestamp;
         let codeFournisseur = e.target.options[e.target.selectedIndex].code_fournisseur;
         let fournisseur = e.target.options[e.target.selectedIndex].Fournisseur;
-        console.log(service)
-        
+
+        // On récupère la liste des layers déjà affichées et on en fait un array
+        const listItems = this.shadowRoot.querySelectorAll('.item');
+
+        let layerArray = [];
+        listItems.forEach((item) => {
+            layerArray.push(item.getAttribute('data-value'));
+        });
+
         this.dispatchEvent(new CustomEvent("feature-layer", {
-            detail: {featureLayer: this.featureLayer,
+            detail: {
+                    featureArray: layerArray,
+                    featureLayer: this.featureLayer,
                     service: service,
                     WMTS_format: WMTS_format,
                     timestamp: timestamp,

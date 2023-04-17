@@ -10,6 +10,7 @@ import {
   Cartesian3,
   WebMapTileServiceImageryProvider,
   WebMapServiceImageryProvider,
+  ImageryLayer,
   createWorldTerrain,
   GetFeatureInfoFormat,
   UrlTemplateImageryProvider,
@@ -150,6 +151,8 @@ export class CesiumViewer extends LitElement {
     swissTrees: { type: Boolean, attribute: "swiss-trees" },
 
     baseLayer: { type: String},
+
+    layerOrderList: {type: Array},
     /**
      * The URL on our server where CesiumJS's static files are hosted;
      * see https://github.com/CesiumGS/cesium/issues/8327 for some explanation.
@@ -211,6 +214,7 @@ export class CesiumViewer extends LitElement {
     this.swissTerrainProvider = false;
     this.imageryProvider = null;
     this.featureLayers = [];
+    this.layerOrderList = [];
     this.cesiumBaseURL = null;
     this.cameraAngle = null;
     this.baseLayer = undefined;
@@ -232,8 +236,13 @@ export class CesiumViewer extends LitElement {
         @toggle-buildings=${this._checkedBuildings}
         @toggle-trees=${this._checkedTrees}
         @feature-layer=${this._checkedFeatureLayers}
+        @layer-order=${this._checkLayerOrder}
       ><slot></slot></div>
       `;
+  }
+  _checkLayerOrder (e) {
+    this.layerOrderList = e.detail;
+    console.log(this.layerOrderList)
   }
   _checkedFeatureLayers(e) {
     this.featureLayers = e.detail
@@ -265,6 +274,7 @@ export class CesiumViewer extends LitElement {
       // On met à jour le fond de carte
       this._updateBaseLayer(this.baseLayer);
     }
+    
   }
 
   updated(changedProperties) {
@@ -281,7 +291,29 @@ export class CesiumViewer extends LitElement {
     if (changedProperties.has('swissTrees')) {
       this._updateSwissTrees();
     }
+
+    if (changedProperties.has('layerOrderList')) {
+      this._changeLayerOrder(this.layerOrderList);
+    }
   }
+
+  _changeLayerOrder (orderedList) {
+    // On parcourt la liste des couches
+    for (let i = 0; i < this._viewer.imageryLayers.length; i++) {
+      // On récupère la couche
+      console.log(this._viewer.imageryLayers._layers)
+      console.log(this.layerOrderList)
+      console.log(this._viewer.imageryLayers.contains('ch.kantone.cadastralwebmap-farbe'))
+      // const layer = this._viewer.imageryLayers.get(i);
+      // console.log(layer)
+      // // On récupère l'index de la couche dans la liste des couches
+      // const index = orderedList.indexOf(layer.name);
+      // // On change l'ordre de la couche
+      // layer.order = index;
+    }
+    
+  }
+
 
   _updateBaseLayer (updatedBaseLayer) {
     // On enlève la première couche de la liste qui correspond au fond de carte
@@ -300,8 +332,12 @@ export class CesiumViewer extends LitElement {
     this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
   }
 
-  _updateFeatureLayers (featureLayers) {
+  _updateFeatureLayers (featureLayers, layerOrderList) {
     // On ajoute les couches de données
+    // On vérifie que la couche n'a pas déjà été ajoutée au viewer
+    if (featureLayers) {
+    if (!featureLayers.featureArray.includes(featureLayers.featureLayer)) {
+
       if (featureLayers.service === "WMS" || featureLayers.service === "WMTS WMS") {
         const wmsFeatureLayer =
           new WebMapServiceImageryProvider({
@@ -321,7 +357,11 @@ export class CesiumViewer extends LitElement {
               ),
             ],
           });
-        this._viewer.imageryLayers.addImageryProvider(wmsFeatureLayer);
+        const layer = new ImageryLayer(wmsFeatureLayer)
+        this._viewer.scene.imageryLayers.add(layer);
+        console.log( this._viewer.imageryLayers)
+        console.log(this._viewer.imageryLayers.indexOf('ch.kantone.cadastralwebmap-farbe'))
+        
       }
 
       if (featureLayers.service === "WMTS") {
@@ -340,8 +380,12 @@ export class CesiumViewer extends LitElement {
             tilingScheme: tilingScheme,
             rectangle: rectangle
           });
-          this._viewer.imageryLayers.addImageryProvider(wmtsFeatureLayer);
+          const layer = new ImageryLayer(wmtsFeatureLayer);
+          this._viewer.scene.imageryLayers.add(layer);
       }
+    }
+  }
+
   }
 
   _updateSwissBuildings() {
