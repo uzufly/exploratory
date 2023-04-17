@@ -303,15 +303,14 @@ export class CesiumViewer extends LitElement {
       // On récupère la couche
       let layerName = this._viewer.scene.imageryLayers._layers[i].name;
 
-      console.log(this._viewer.scene.imageryLayers)
-      console.log(this.layerOrderList)
-
       if (layerName === this.layerOrderList.layerName) {
         console.log('NAME', this._viewer.scene.imageryLayers._layers[i].name)
         console.log('NAMELIST', this.layerOrderList.layerName)
 
         console.log('INDEX', this._viewer.scene.imageryLayers._layers[i]._layerIndex)
+        console.log('INDEXLIST', window.Math.abs(this.layerOrderList.index - (this.layerOrderList.length - 1)))
         console.log('INDEXLIST', this.layerOrderList.index)
+        console.log('INDEXLIST', this.layerOrderList)
 
         let absoluteIndexDifference = window.Math.abs(this.layerOrderList.index - (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2));
 
@@ -452,6 +451,8 @@ export class CesiumViewer extends LitElement {
         url: "https://3d.geo.admin.ch/1.0.0/ch.swisstopo.terrain.3d/default/20160115/4326/"
       });
     }
+
+    console.log(this.imageryProvider)
 
     const viewer = new Viewer(container, {
       ...ourViewerOptions,

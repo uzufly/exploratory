@@ -274,7 +274,7 @@ export class LayerPicker extends LitElement {
             }
             // Si notre array ne contient pas déjà cet objet
             if (!selectedValues.some(e => e.value === selectedObject.value)) {
-                selectedValues.push(selectedObject);
+                selectedValues.unshift(selectedObject);
             }
             // On l'ajoute à la liste
             selectedValuesDiv.innerHTML = '';
@@ -330,7 +330,8 @@ export class LayerPicker extends LitElement {
                         // On dispatch le nom de la couche et son index
                         this.dispatchEvent(new CustomEvent("layer-order", {
                             detail: {layerName: current.getAttribute('data-value'),
-                                    index: droppedpos},
+                                    index: droppedpos,
+                                    length: items.length},
                             bubbles: true,
                             composed: true
                         }));
