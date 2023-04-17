@@ -133,13 +133,9 @@ export class LayerPicker extends LitElement {
               left: 0;
               margin-bottom: 4px;
             }
-            .item i {
-              color: #474747
+            .item.active {
+                background: rgba(255,255,255,.68);
             }
-            .item.dragging {
-              opacity: 0.5;
-            }
-            .item.dragging :where(.layer-displayed, i) {
           `,
           ];
     }
@@ -197,7 +193,7 @@ export class LayerPicker extends LitElement {
             <div class="layers-displayed">
                 <h3>Layer displayed :</h3>
                 <ul class="draggable-list">
-                    ${this._populateDraggableMenu()}
+                    
                 </ul>
             </div>
         `;
@@ -226,43 +222,41 @@ export class LayerPicker extends LitElement {
         featureLayerMenu.add(defaultOption);
         featureLayerMenu.selectedIndex = 0;
         const url = '../static/Data/swisstopo_map_service.json';
-        const request = new XMLHttpRequest();
-        request.open('GET', url, true);
-        request.onload = () => {
-            if (request.status === 200) {
-                const data = JSON.parse(request.responseText);
+
+        fetch(url)
+            .then((response) => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then((data) => {
                 let option;
                 for (let i = 0; i < data.length; i++) {
                     option = document.createElement('option');
                     option.text = data[i].Description;
                     option.value = data[i].layerName;
                     option.service = data[i].Service;
+
                     option.WMTS_format = data[i].WMTS_format;
                     option.timestamp = data[i].Timestamp;
                     option.code_fournisseur = data[i].Code_fournisseur;
                     option.Fournisseur = data[i].Fournisseur;
                     featureLayerMenu.add(option);
                 }
-            } else {
-                // Reached the server, but it returned an error
-            }
-        }
-        request.onerror = () => {
-            console.error('An error occurred fetching the JSON from ' + url);
-        };
-        request.send();
+            })
+            .catch((error) => {
+                console.log('There has been a problem with your fetch operation: ', error.message);
+            });
+        let selectedValuesDiv = this.shadowRoot.querySelector('.draggable-list');
 
-        this._populateDraggableMenu(featureLayerMenu);
-
-        
+        this._populateDraggableMenu(featureLayerMenu, selectedValuesDiv);
     }
 
-    _populateDraggableMenu(featureLayersDraggable) {
-
+    _populateDraggableMenu(featureLayersDraggable, selectedValuesDiv) {
       //const featureLayersDraggable = this.shadowRoot.getElementById('feature-layer-menu');
       if (featureLayersDraggable) {
 
-      let selectedValuesDiv = this.shadowRoot.querySelector('.draggable-list');
         let selectedValues = [];
         featureLayersDraggable.addEventListener('change', function() {
             console.log(featureLayersDraggable);
@@ -274,45 +268,56 @@ export class LayerPicker extends LitElement {
             selectedValuesDiv.innerHTML = '';
             selectedValues.forEach(function(value) {
                 selectedValuesDiv.innerHTML += `
-                <li class="item" draggable="true">
-                  <div class="layer-displayed">
-                    <span>${value}</span>
-                  </div>
-                  <i class="uil uil-draggabledots"></i>
+                <li class="item">
+                   ${value}
                 </li>`;
             });
-            const items = selectedValuesDiv.querySelectorAll('.item');
-            console.log(items)
-            items.forEach(item => {
-              item.addEventListener('dragstart', () => {
-                setTimeout(() => item.classList.add("dragging"), 0);
-              });
-              item.addEventListener('dragend', () => item.classList.remove("dragging"));
-            })
-    
-            const initSortableList = (e) => {
-              e.preventDefault();
-              const draggingItem = document.querySelector(".dragging");
-              let siblings = [...selectedValuesDiv.querySelectorAll(".item:not(.dragging)")];
-              let nextSibling = siblings.find(sibling => {
-                return e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
-              });
-              if (nextSibling) {
-                selectedValuesDiv.insertBefore(draggingItem, nextSibling);
-              }
-          }
-          selectedValuesDiv.addEventListener('dragover', initSortableList);
-          selectedValuesDiv.addEventListener('dragenter', e => e.preventDefault());
-            // selectedValuesDiv.innerHTML += `<div class="layer-displayed">${selectedOption}</div>`;
+            let items = selectedValuesDiv.getElementsByTagName('li'), current = null;
+            
+            for (let i of items) {
+                i.draggable = true;
+                i.ondragstart = e => {
+                    current = i;
+                    for (let it of items) {
+                        if (it != current) {
+                            it.classList.add('hint');
+                        }
+                    }
+                };
+                i.ondragenter = e => {
+                    if (i != current) {
+                        i.classList.add('active');
+                    }
+                };
+                i.ondragleave = () => i.classList.remove("active");
+                i.ondragend = () => { for (let it of items) { 
+                    it.classList.remove('hint');
+                    it.classList.remove('active');
+                }};
+                i.ondragover = e => { e.preventDefault(); };
+                i.ondrop = e => {
+                    e.preventDefault();
+                    if (i != current) {
+                        let currentpos = 0, droppedpos = 0;
+                        for (let it=0; it<items.length; it++) {
+                            if (current == items[it]) {currentpos = it;}
+                            if (i == items[it]) {droppedpos = it;}
+                        }
+                        if (currentpos < droppedpos) {
+                            i.parentNode.insertBefore(current, i.nextSibling);
+                        }
+                        else {
+                            i.parentNode.insertBefore(current, i);
+                        }
+
+                    }
+                };
+            }
         });
-
-        
-      }
     }
-
-        
+    }
+  
     _selectFeatureLayer(e) {
-
         this.featureLayer = e.target.value;
         let service = e.target.options[e.target.selectedIndex].service;
         let WMTS_format = e.target.options[e.target.selectedIndex].WMTS_format;
@@ -330,8 +335,7 @@ export class LayerPicker extends LitElement {
                     },
             bubbles: true,
             composed: true,
-        }));
-        
+        })); 
     }
 
     _onChangeBaseLayer(e) {
