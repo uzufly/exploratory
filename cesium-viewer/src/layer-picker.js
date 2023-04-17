@@ -107,20 +107,39 @@ export class LayerPicker extends LitElement {
                 grid-column-start: 1;
                 grid-column-end: span 3;
             }
-            .layers-displayed span {
+            .layers-displayed h3 {
               display: flex;
               justify-content: center;
               align-items: center;
               font-size: 1.2rem;
               font-weight: bold;
             }
-            .layer-displayed {
-              padding: 4px;
-              margin: 4px;
+            .item .layer-displayed {
+              display: flex;
+              align-items: center;
+            }
+            .draggable-list {
+              padding: 8px;
+            }
+            
+            .draggable-list .item{
+              display: flex;
+              cursor: move;
+              align-items: center;
               background-color: rgba(120,120,120,.68);
               border-radius: 8px;
+              align-items: center;
+              padding: 4px;
+              left: 0;
+              margin-bottom: 4px;
             }
-            .
+            .item i {
+              color: #474747
+            }
+            .item.dragging {
+              opacity: 0.5;
+            }
+            .item.dragging :where(.layer-displayed, i) {
           `,
           ];
     }
@@ -176,7 +195,10 @@ export class LayerPicker extends LitElement {
     _renderLayerDisplayed = () => {
         return html`
             <div class="layers-displayed">
-                <span>Layer displayed :</span>
+                <h3>Layer displayed :</h3>
+                <ul class="draggable-list">
+                    ${this._populateDraggableMenu()}
+                </ul>
             </div>
         `;
     }
@@ -230,22 +252,64 @@ export class LayerPicker extends LitElement {
         };
         request.send();
 
-        let selectedValuesDiv = this.shadowRoot.querySelector('.layers-displayed');
+        this._populateDraggableMenu(featureLayerMenu);
+
+        
+    }
+
+    _populateDraggableMenu(featureLayersDraggable) {
+
+      //const featureLayersDraggable = this.shadowRoot.getElementById('feature-layer-menu');
+      if (featureLayersDraggable) {
+
+      let selectedValuesDiv = this.shadowRoot.querySelector('.draggable-list');
         let selectedValues = [];
-        featureLayerMenu.addEventListener('change', function() {
-            console.log(featureLayerMenu);
-            let selectedOption = featureLayerMenu.options[featureLayerMenu.selectedIndex];
+        featureLayersDraggable.addEventListener('change', function() {
+            console.log(featureLayersDraggable);
+            let selectedOption = featureLayersDraggable.options[featureLayersDraggable.selectedIndex];
             let selectedText = selectedOption.textContent;
             if (!selectedValues.includes(selectedText)) {
                 selectedValues.push(selectedText);
             }
             selectedValuesDiv.innerHTML = '';
             selectedValues.forEach(function(value) {
-                selectedValuesDiv.innerHTML += `<div class="layer-displayed">${value}</div>`;
+                selectedValuesDiv.innerHTML += `
+                <li class="item" draggable="true">
+                  <div class="layer-displayed">
+                    <span>${value}</span>
+                  </div>
+                  <i class="uil uil-draggabledots"></i>
+                </li>`;
             });
+            const items = selectedValuesDiv.querySelectorAll('.item');
+            console.log(items)
+            items.forEach(item => {
+              item.addEventListener('dragstart', () => {
+                setTimeout(() => item.classList.add("dragging"), 0);
+              });
+              item.addEventListener('dragend', () => item.classList.remove("dragging"));
+            })
+    
+            const initSortableList = (e) => {
+              e.preventDefault();
+              const draggingItem = document.querySelector(".dragging");
+              let siblings = [...selectedValuesDiv.querySelectorAll(".item:not(.dragging)")];
+              let nextSibling = siblings.find(sibling => {
+                return e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
+              });
+              if (nextSibling) {
+                selectedValuesDiv.insertBefore(draggingItem, nextSibling);
+              }
+          }
+          selectedValuesDiv.addEventListener('dragover', initSortableList);
+          selectedValuesDiv.addEventListener('dragenter', e => e.preventDefault());
             // selectedValuesDiv.innerHTML += `<div class="layer-displayed">${selectedOption}</div>`;
         });
+
+        
+      }
     }
+
         
     _selectFeatureLayer(e) {
 
