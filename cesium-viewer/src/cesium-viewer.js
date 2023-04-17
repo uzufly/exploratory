@@ -301,27 +301,31 @@ export class CesiumViewer extends LitElement {
     // On parcourt la liste des couches
     for (let i = 0; i < this._viewer.scene.imageryLayers.length; i++) {
       // On récupère la couche
-      console.log('NAME', this._viewer.scene.imageryLayers._layers[i].name)
-      console.log('NAMELIST', this.layerOrderList.layerName)
-      console.log('INDEX', this._viewer.scene.imageryLayers._layers[i]._layerIndex)
-      console.log('INDEXLIST', this.layerOrderList.index)
       let layerName = this._viewer.scene.imageryLayers._layers[i].name;
 
+      console.log(this._viewer.scene.imageryLayers)
+      console.log(this.layerOrderList)
+
       if (layerName === this.layerOrderList.layerName) {
+        console.log('NAME', this._viewer.scene.imageryLayers._layers[i].name)
+        console.log('NAMELIST', this.layerOrderList.layerName)
+
+        console.log('INDEX', this._viewer.scene.imageryLayers._layers[i]._layerIndex)
+        console.log('INDEXLIST', this.layerOrderList.index)
 
         let absoluteIndexDifference = window.Math.abs(this.layerOrderList.index - (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2));
 
         console.log('absoluteIndexDifference', absoluteIndexDifference)
-        if (this.layerOrderList.index > (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
-          for (let i = 0; i < absoluteIndexDifference; i++) {
+        if (this.layerOrderList.index < (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
+          //for (let i = 0; i < absoluteIndexDifference; i++) {
             console.log('this should go up')
-            this._viewer.scene.imageryLayers.raise(this._viewer.scene.imageryLayers._layers[i]);
-          }
-        } else if (this.layerOrderList.index < (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
-          for (let i = 0; i < absoluteIndexDifference; i++) {
-            console.log('this should go down')
             this._viewer.scene.imageryLayers.lower(this._viewer.scene.imageryLayers._layers[i]);
-          }
+          //}
+        } else if (this.layerOrderList.index > (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
+          //for (let i = 0; i < absoluteIndexDifference; i++) {
+            console.log('this should go down')
+            this._viewer.scene.imageryLayers.raise(this._viewer.scene.imageryLayers._layers[i]);
+          //}
         }
         
       }
