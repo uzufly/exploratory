@@ -50,6 +50,7 @@ const rectangle = Rectangle.fromDegrees(
   11.477436312994008,
   48.27502358353741
 );
+
 const swissTLM3DURL = 'https://vectortiles4.geo.admin.ch/3d-tiles/ch.swisstopo.swisstlm3d.3d/20190313/tileset.json';
 const swissTreesURL = 'https://vectortiles0.geo.admin.ch/3d-tiles/ch.swisstopo.vegetation.3d/20190313/tileset.json';
 
@@ -242,7 +243,6 @@ export class CesiumViewer extends LitElement {
   }
   _checkLayerOrder (e) {
     this.layerOrderList = e.detail;
-    console.log(this.layerOrderList)
   }
   _checkedFeatureLayers(e) {
     this.featureLayers = e.detail
@@ -299,17 +299,32 @@ export class CesiumViewer extends LitElement {
 
   _changeLayerOrder (orderedList) {
     // On parcourt la liste des couches
-    for (let i = 0; i < this._viewer.imageryLayers.length; i++) {
+    for (let i = 0; i < this._viewer.scene.imageryLayers.length; i++) {
       // On récupère la couche
-      console.log(this._viewer.imageryLayers._layers)
-      console.log(this.layerOrderList)
-      console.log(this._viewer.imageryLayers.contains('ch.kantone.cadastralwebmap-farbe'))
-      // const layer = this._viewer.imageryLayers.get(i);
-      // console.log(layer)
-      // // On récupère l'index de la couche dans la liste des couches
-      // const index = orderedList.indexOf(layer.name);
-      // // On change l'ordre de la couche
-      // layer.order = index;
+      console.log('NAME', this._viewer.scene.imageryLayers._layers[i].name)
+      console.log('NAMELIST', this.layerOrderList.layerName)
+      console.log('INDEX', this._viewer.scene.imageryLayers._layers[i]._layerIndex)
+      console.log('INDEXLIST', this.layerOrderList.index)
+      let layerName = this._viewer.scene.imageryLayers._layers[i].name;
+
+      if (layerName === this.layerOrderList.layerName) {
+
+        let absoluteIndexDifference = window.Math.abs(this.layerOrderList.index - (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2));
+
+        console.log('absoluteIndexDifference', absoluteIndexDifference)
+        if (this.layerOrderList.index > (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
+          for (let i = 0; i < absoluteIndexDifference; i++) {
+            console.log('this should go up')
+            this._viewer.scene.imageryLayers.raise(this._viewer.scene.imageryLayers._layers[i]);
+          }
+        } else if (this.layerOrderList.index < (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
+          for (let i = 0; i < absoluteIndexDifference; i++) {
+            console.log('this should go down')
+            this._viewer.scene.imageryLayers.lower(this._viewer.scene.imageryLayers._layers[i]);
+          }
+        }
+        
+      }
     }
     
   }
@@ -358,9 +373,9 @@ export class CesiumViewer extends LitElement {
             ],
           });
         const layer = new ImageryLayer(wmsFeatureLayer)
+        layer.name = featureLayers.featureLayer;
         this._viewer.scene.imageryLayers.add(layer);
-        console.log( this._viewer.imageryLayers)
-        console.log(this._viewer.imageryLayers.indexOf('ch.kantone.cadastralwebmap-farbe'))
+
         
       }
 
@@ -381,9 +396,12 @@ export class CesiumViewer extends LitElement {
             rectangle: rectangle
           });
           const layer = new ImageryLayer(wmtsFeatureLayer);
+          layer.name = featureLayers.featureLayer;
+
           this._viewer.scene.imageryLayers.add(layer);
       }
     }
+
   }
 
   }
@@ -423,7 +441,6 @@ export class CesiumViewer extends LitElement {
   }
 
   _createCesiumViewer(container) {
-    console.log(this.featureLayers)
 
     let terrainProvider;
     if (this.swissTerrainProvider) {
@@ -488,7 +505,6 @@ export class CesiumViewer extends LitElement {
     if (this.featureLayers) {
       // importation des Feature Layers
       const layers = this.getAttribute("feature-layers");
-      console.log(layers)
       // On parse à travers les couches indiquées dans l'attribut feature-layers
       this.featureLayers = JSON.parse(layers);
       
