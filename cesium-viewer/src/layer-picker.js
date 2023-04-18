@@ -3,6 +3,8 @@ import {
     CesiumTerrainProvider
 } from "cesium";
 
+import 'boxicons';
+
 export class LayerPicker extends LitElement {
 
     static get properties() {
@@ -12,6 +14,7 @@ export class LayerPicker extends LitElement {
             hillshadeBaseLayer: { type: String},
             imageryBaseLayer: {type: String},
             vectorBaseLayer: {type: String},
+            layerList: {type: Array},
         };
     }
 
@@ -20,6 +23,7 @@ export class LayerPicker extends LitElement {
         this.defaultBuildings = false;
         this.defaultTrees = false;
         this.swissTerrain = true;
+        this.layerList = [];
 
     }
     static get styles(){
@@ -121,20 +125,26 @@ export class LayerPicker extends LitElement {
             .draggable-list {
               padding: 8px;
             }
-            
             .draggable-list .item{
               display: flex;
               cursor: move;
-              align-items: center;
               background-color: rgba(120,120,120,.68);
-              border-radius: 8px;
               align-items: center;
+                justify-content: space-between;
+              border-radius: 8px;
               padding: 4px;
               left: 0;
               margin-bottom: 4px;
             }
             .item.active {
                 background: rgba(255,255,255,.68);
+            }
+            .item .icons{
+                cursor: pointer;
+                border-radius: 4px;
+                background-color: rgba(255,255,255,.68);
+                right: 4px;
+                color: #fff;
             }
           `,
           ];
@@ -193,7 +203,6 @@ export class LayerPicker extends LitElement {
             <div class="layers-displayed">
                 <h3>Layer displayed :</h3>
                 <ul class="draggable-list" @change=${this._populateDraggableMenu}>
-                    
                 </ul>
             </div>
         `;
@@ -249,16 +258,21 @@ export class LayerPicker extends LitElement {
             });
         let selectedValuesDiv = this.shadowRoot.querySelector('.draggable-list');
 
-        this._populateDraggableMenu(featureLayerMenu, selectedValuesDiv);
+
+        this._populateDraggableMenu(featureLayerMenu, selectedValuesDiv, this.layerList);
     }
 
+    _deleteLayers = () => {
+        for (let i = 0; i < document.getElementsByTagName('cesium-viewer').length; i++) {
+            document.getElementsByTagName('cesium-viewer')[i].removeAttribute('swiss-buildings');
+            document.getElementsByTagName('cesium-viewer')[i].removeAttribute('swiss-trees');
+        }
+    }
 
-
-    _populateDraggableMenu(featureLayersDraggable, selectedValuesDiv) {
+    _populateDraggableMenu(featureLayersDraggable, selectedValuesDiv, selectedValues) {
       //const featureLayersDraggable = this.shadowRoot.getElementById('feature-layer-menu');
       if (featureLayersDraggable) {
 
-        let selectedValues = [];
 
         featureLayersDraggable.addEventListener('change', function() {
             console.log(featureLayersDraggable);
@@ -279,13 +293,33 @@ export class LayerPicker extends LitElement {
             // On l'ajoute à la liste
             selectedValuesDiv.innerHTML = '';
             console.log('selectedValues', selectedValues)
-            selectedValues.forEach(function(value) {
-                selectedValuesDiv.innerHTML += `
-                <li class="item" data-value="${value.value}">
-                   ${value.text}
-                </li>`;
-            });
+            
+            selectedValues.forEach((value) => {
+                console.log(selectedValuesDiv)
+                const listItem = document.createElement('li');
+                listItem.className = 'item';
+                listItem.setAttribute('data-value', value.value);
+                
+                listItem.innerHTML = `
+                    <span>${value.text}</span>
+                    <box-icon name='trash' class="icons" color="white"></box-icon>
+                
+                `;
 
+                listItem.querySelector('.icons').addEventListener('click', () => {
+                    console.log(value.value)
+                    this.dispatchEvent(new CustomEvent("layer-deleted", {
+                        detail: {layerName: value.value},
+                        bubbles: true,
+                        composed: true
+                    }));
+
+                    
+                });
+
+                selectedValuesDiv.appendChild(listItem);
+                
+            });
             // Fonction pour la liste draggable
             let items = selectedValuesDiv.getElementsByTagName('li'), current = null;
             
@@ -342,6 +376,10 @@ export class LayerPicker extends LitElement {
             
         });
     }
+    }
+
+    _deleteLayers() {
+        console.log('coucou')
     }
     _selectFeatureLayer(e) {
         this.featureLayer = e.target.value;

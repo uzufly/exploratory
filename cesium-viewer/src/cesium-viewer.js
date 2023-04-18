@@ -238,8 +238,13 @@ export class CesiumViewer extends LitElement {
         @toggle-trees=${this._checkedTrees}
         @feature-layer=${this._checkedFeatureLayers}
         @layer-order=${this._checkLayerOrder}
+        @layer-deleted=${this._deleteLayer}
       ><slot></slot></div>
       `;
+  }
+  _deleteLayer(e) {
+    console.log(e.target)
+    this._viewer.scene.imageryLayers.remove(e.detail);
   }
   _checkLayerOrder (e) {
     this.layerOrderList = e.detail;
@@ -293,45 +298,34 @@ export class CesiumViewer extends LitElement {
     }
 
     if (changedProperties.has('layerOrderList')) {
-      this._changeLayerOrder(this.layerOrderList);
+      this._changeLayerOrder(this._viewer.scene.imageryLayers, this.layerOrderList);
     }
   }
 
-  _changeLayerOrder (orderedList) {
+  _deleteLayer() {
+
+  }
+
+  _changeLayerOrder (imageryLayers, layerOrderList) {
+    
     // On parcourt la liste des couches
-    for (let i = 0; i < this._viewer.scene.imageryLayers.length; i++) {
-      // On récupère la couche
-      let layerName = this._viewer.scene.imageryLayers._layers[i].name;
-
-      if (layerName === this.layerOrderList.layerName) {
-        console.log('NAME', this._viewer.scene.imageryLayers._layers[i].name)
-        console.log('NAMELIST', this.layerOrderList.layerName)
-
-        console.log('INDEX', this._viewer.scene.imageryLayers._layers[i]._layerIndex)
-        console.log('INDEXLIST', window.Math.abs(this.layerOrderList.index - (this.layerOrderList.length - 1)))
-        console.log('INDEXLIST', this.layerOrderList.index)
-        console.log('INDEXLIST', this.layerOrderList)
-
-        let absoluteIndexDifference = window.Math.abs(this.layerOrderList.index - (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2));
-
-        console.log('absoluteIndexDifference', absoluteIndexDifference)
-        if (this.layerOrderList.index < (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
-          //for (let i = 0; i < absoluteIndexDifference; i++) {
-            console.log('this should go up')
-            this._viewer.scene.imageryLayers.lower(this._viewer.scene.imageryLayers._layers[i]);
-          //}
-        } else if (this.layerOrderList.index > (this._viewer.scene.imageryLayers._layers[i]._layerIndex - 2)) {
-          //for (let i = 0; i < absoluteIndexDifference; i++) {
-            console.log('this should go down')
-            this._viewer.scene.imageryLayers.raise(this._viewer.scene.imageryLayers._layers[i]);
-          //}
+    for (let i = 0; i < imageryLayers.length; i++) {
+      // On récupère le nom de la couche
+      let layerName = imageryLayers._layers[i].name;
+      // Si le nom de la couche est égal au nom du layer draggé
+      if (layerName === layerOrderList.layerName) {
+        // Puisque la liste est inversée, on inverse la différence
+        // Si l'index du layer draggé est inférieur à l'index de la couche, on doit descendre la couche
+        if (window.Math.abs(layerOrderList.index - (layerOrderList.length - 1)) < (imageryLayers._layers[i]._layerIndex - 2)) {
+            imageryLayers.lower(imageryLayers._layers[i]);
         }
-        
+        // Sinon, on doit monter la couche
+        else if (window.Math.abs(layerOrderList.index - (layerOrderList.length - 1)) > (imageryLayers._layers[i]._layerIndex - 2)) {
+            imageryLayers.raise(imageryLayers._layers[i]);
+        }  
       }
     }
-    
   }
-
 
   _updateBaseLayer (updatedBaseLayer) {
     // On enlève la première couche de la liste qui correspond au fond de carte
@@ -350,7 +344,7 @@ export class CesiumViewer extends LitElement {
     this._viewer.imageryLayers.addImageryProvider(baseLayer, 0);
   }
 
-  _updateFeatureLayers (featureLayers, layerOrderList) {
+  _updateFeatureLayers (featureLayers) {
     // On ajoute les couches de données
     // On vérifie que la couche n'a pas déjà été ajoutée au viewer
     if (featureLayers) {
@@ -462,6 +456,8 @@ export class CesiumViewer extends LitElement {
         url: this.imageryProvider
       }),
     });
+
+    
 
     // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
