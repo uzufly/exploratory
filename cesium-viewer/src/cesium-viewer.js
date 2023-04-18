@@ -307,9 +307,6 @@ export class CesiumViewer extends LitElement {
       this._changeLayerOrder(this._viewer.scene.imageryLayers, this.layerOrderList);
     }
   }
-
-  
-
   _changeLayerOrder (imageryLayers, layerOrderList) {
     
     // On parcourt la liste des couches
@@ -427,6 +424,21 @@ export class CesiumViewer extends LitElement {
         this._viewer.scene.primitives._primitives[i].show = this.swissTrees;
       }
     }
+  }
+
+  _addWebMapTileServiceImageryProvider(imageryLayers, featureLayer, imageryFormat, imageryTimestamp, tilingScheme, rectangle) {
+    console.log(featureLayer)
+    const wmtsLayer = new WebMapTileServiceImageryProvider({
+      url: `https://wmts.geo.admin.ch/1.0.0/${featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.${imageryFormat}`,
+      layer: featureLayer,
+      style: "default",
+      format: `image/${imageryFormat}`,
+      tileMatrixSetID: imageryTimestamp,
+      maximumLevel: 17,
+      tilingScheme: tilingScheme,
+      rectangle: rectangle
+    });
+    imageryLayers.addImageryProvider(wmtsLayer);
   }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
@@ -570,25 +582,32 @@ export class CesiumViewer extends LitElement {
       }
     }
     
+    this._addWebMapTileServiceImageryProvider(imageryLayers, "ch.swisstopo.swisstlm3d-strassen", "png", "current", tilingScheme, rectangle);
 
+    // console.log(swissRoads)
     // On ajoute la couches des routes qui restera toujours visible
-    const swissRoads =
-      new WebMapTileServiceImageryProvider({
-        url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
-        layer: "ch.swisstopo.swisstlm3d-strassen",
-        style: "default",
-        format: "image/png",
-        tileMatrixSetID: "current",
-        maximumLevel: 17,
-        tilingScheme: tilingScheme,
-        rectangle: rectangle
-      });
+    // const swissRoads =
+    //   new WebMapTileServiceImageryProvider({
+    //     url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
+    //     layer: "ch.swisstopo.swisstlm3d-strassen",
+    //     style: "default",
+    //     format: "image/png",
+    //     tileMatrixSetID: "current",
+    //     maximumLevel: 17,
+    //     tilingScheme: tilingScheme,
+    //     rectangle: rectangle
+    //   });
 
-    imageryLayers.addImageryProvider(swissRoads);
+    // imageryLayers.addImageryProvider(swissRoads);
 
     return viewer;
   }
+
+  
 }
+
+
+  
 
 if (!window.customElements.get("cesium-viewer")) {
   window.customElements.define("cesium-viewer", CesiumViewer);
