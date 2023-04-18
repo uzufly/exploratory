@@ -223,6 +223,8 @@ export class CesiumViewer extends LitElement {
     this.swissBuildings = false;
     this.swissTrees = false;
 
+    // document.addEventListener('layer-deleted', this._handleLayerDeleted);
+
   }
 
   render() {
@@ -243,8 +245,12 @@ export class CesiumViewer extends LitElement {
       `;
   }
   _deleteLayer(e) {
-    console.log(e.target)
-    this._viewer.scene.imageryLayers.remove(e.detail);
+    // On itère sur chaque couche, si la couche cliquée est trouvée, on la supprime
+    for (let i = 0; i < this._viewer.scene.imageryLayers.length; i++) {
+      if (this._viewer.scene.imageryLayers.get(i).name === e.detail.layerName) {
+        this._viewer.scene.imageryLayers.remove(this._viewer.scene.imageryLayers.get(i));
+      }
+    }
   }
   _checkLayerOrder (e) {
     this.layerOrderList = e.detail;
@@ -302,9 +308,7 @@ export class CesiumViewer extends LitElement {
     }
   }
 
-  _deleteLayer() {
-
-  }
+  
 
   _changeLayerOrder (imageryLayers, layerOrderList) {
     
