@@ -18,8 +18,15 @@ import {
   Rectangle,
   ShadowMode,
   CesiumTerrainProvider,
+  GeoJsonDataSource,
+  Color,
+  HeightReference,
+  EllipsoidGeodesic,
+  JulianDate,
   PrimitiveCollection,
 } from "cesium";
+
+import axios from 'axios';
 
 import {default as LayerPicker} from "./layer-picker.js";
 
@@ -381,6 +388,8 @@ export class CesiumViewer extends LitElement {
         if (featureLayers.WMTS_format !== "png") {
           featureLayers.WMTS_format = "jpeg"
         }
+        // const imageryLayers = this._viewer.scene.imageryLayers;
+        // _addWebMapTileServiceImageryProvider(imageryLayers, featureLayer, imageryFormat, imageryTimestamp, tilingScheme, rectangle)
         const wmtsFeatureLayer =
           new WebMapTileServiceImageryProvider({
             
@@ -425,6 +434,27 @@ export class CesiumViewer extends LitElement {
       }
     }
   }
+  _addWebMapServiceImageryProvider(featureLayer, imageryFormat, tilingScheme, rectangle) {
+    const wmsFeatureLayer =
+      new WebMapServiceImageryProvider({
+        url: "https://wms.geo.admin.ch/",
+        layers: featureLayer,
+        parameters: {
+          format: `image/${imageryFormat}`,
+          transparent: true,
+        },
+        minimumLevel: 8,
+        maximumLevel: 17,
+        tilingScheme: tilingScheme,
+        rectangle: rectangle,
+        getFeatureInfoFormats: [
+          new GetFeatureInfoFormat(
+            "text",
+          ),
+        ],
+      });
+    
+  }
 
   _addWebMapTileServiceImageryProvider(imageryLayers, featureLayer, imageryFormat, imageryTimestamp, tilingScheme, rectangle) {
     console.log(featureLayer)
@@ -438,7 +468,7 @@ export class CesiumViewer extends LitElement {
       tilingScheme: tilingScheme,
       rectangle: rectangle
     });
-    imageryLayers.addImageryProvider(wmtsLayer);
+    
   }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
@@ -472,8 +502,6 @@ export class CesiumViewer extends LitElement {
         url: this.imageryProvider
       }),
     });
-
-    
 
     // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
@@ -544,44 +572,57 @@ export class CesiumViewer extends LitElement {
         }
         // On différencie l'importation des couches WMS et WMTS
         if (this.featureLayers[i].type === "WMS" | this.featureLayers[i].type === "wms") {
-
-          const wmsFeatureLayer =
-            new WebMapServiceImageryProvider({
-              url: "https://wms.geo.admin.ch/",
-              layers: this.featureLayers[i].src,
-              parameters: {
-                format: `image/${imageryFormat}`,
-                transparent: true,
-              },
-              minimumLevel: 8,
-              maximumLevel: 17,
-              tilingScheme: tilingScheme,
-              rectangle: rectangle,
-              getFeatureInfoFormats: [
-                new GetFeatureInfoFormat(
-                  "text",
-                ),
-              ],
-            });
+          _addWebMapServiceImageryProvider(imageryLayers, this.featureLayers[i].src, imageryFormat, tilingScheme, rectangle);
           imageryLayers.addImageryProvider(wmsFeatureLayer);
-
         } else if (this.featureLayers[i].type === "WMTS" | this.featureLayers[i].type === "wmts") {
-          const wmtsFeatureLayer =
-          new WebMapTileServiceImageryProvider({
-            url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers[i].src}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.${imageryFormat}}`,
-            layer: this.featureLayers[i].src,
-            style: "default",
-            format: `image/${imageryFormat}`,
-            tileMatrixSetID: imageryTimestamp,
-            maximumLevel: 17,
-            tilingScheme: tilingScheme,
-            rectangle: rectangle
-          });
-          imageryLayers.addImageryProvider(wmtsFeatureLayer);
+          this._addWebMapTileServiceImageryProvider(imageryLayers, this.featureLayers[i].src, imageryFormat, imageryTimestamp, tilingScheme, rectangle);
+          imageryLayers.addImageryProvider(wmtsLayer);
         }
       }
     }
-    
+
+    const coordinates = '6.5393000025488766,46.54339219475623'
+    fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${coordinates}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=1,1,1,1&imageDisplay=1,1,1&lang=fr&layers=all:ch.swisstopo-vd.geometa-nfgeom&returnGeometry=true&sr=4326&tolerance=0`)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data.results[0].geometry)
+        const geojson = data.results[0].geometry;
+        const dataSource = GeoJsonDataSource.load(geojson, {
+          stroke: Color.HOTPINK,
+          fill: Color.PINK,
+          strokeWidth: 3,
+        });
+        console.log(dataSource)
+        
+
+        viewer.zoomTo(dataSource);
+
+        dataSource.then(function(dataSource) {
+          viewer.dataSources.add(dataSource);
+          const entities = dataSource.entities.values;
+          console.log(dataSource.entities)
+          for (let i = 0; i < entities.length; i++) {
+            const entity = entities[i];
+            entity.polygon.material = Color.RED.withAlpha(0.5);
+            entity.polygon.extrudedHeight = 470;
+          //   entity.clampToGround = true;
+          //   // Get the position of the entity
+          //   console.log(entity)
+          //   // let position = entity.position.getValue(JulianDate.now());
+
+          //   // // Get the height difference between the ellipsoid and the geoid at the position
+          //   // let geodesic = new EllipsoidGeodesic();
+          //   // geodesic.setEndPoints(position, position);
+          //   // let heightDifference = viewer.scene.globe.getHeight(geodesic.endPoint) - geodesic.endPoint.height;
+
+          //   // // Adjust the position of the entity to the geoid height
+          //   // entity.position = new Cesium.ConstantPositionProperty(new Cesium.Cartesian3(position.x, position.y, position.z + heightDifference));
+          }
+        });
+        
+      });
+
+    console.log(viewer.dataSources)
     this._addWebMapTileServiceImageryProvider(imageryLayers, "ch.swisstopo.swisstlm3d-strassen", "png", "current", tilingScheme, rectangle);
 
     // console.log(swissRoads)
