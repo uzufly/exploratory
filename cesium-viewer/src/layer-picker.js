@@ -5,6 +5,8 @@ import {
 
 import 'boxicons';
 
+import identifyFeature from "./highlightFeature.js";
+
 export class LayerPicker extends LitElement {
 
     static get properties() {
@@ -313,13 +315,15 @@ export class LayerPicker extends LitElement {
                         bubbles: true,
                         composed: true
                     }));
-
+                    selectedValuesDiv.removeChild(listItem);
+                    selectedValues = selectedValues.filter(item => item.value !== value.value);
                     
                 });
 
                 selectedValuesDiv.appendChild(listItem);
                 
             });
+
             // Fonction pour la liste draggable
             let items = selectedValuesDiv.getElementsByTagName('li'), current = null;
             

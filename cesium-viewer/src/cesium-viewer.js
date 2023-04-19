@@ -18,8 +18,21 @@ import {
   Rectangle,
   ShadowMode,
   CesiumTerrainProvider,
+  GeoJsonDataSource,
+  Color,
+  GroundPrimitive,
+  GeometryInstance,
+  PolygonGeometry,
+  ColorGeometryInstanceAttribute,
+  ScreenSpaceEventType,
+  PolygonHierarchy,
+  HeightReference,
+  EllipsoidGeodesic,
+  JulianDate,
   PrimitiveCollection,
 } from "cesium";
+
+import axios from 'axios';
 
 import {default as LayerPicker} from "./layer-picker.js";
 
@@ -220,8 +233,12 @@ export class CesiumViewer extends LitElement {
     this.cameraAngle = null;
     this.baseLayer = undefined;
 
+    // this.identifyFeature = new identifyFeature();
+
     this.swissBuildings = false;
     this.swissTrees = false;
+
+    // document.addEventListener('layer-deleted', this._handleLayerDeleted);
 
   }
 
@@ -240,11 +257,16 @@ export class CesiumViewer extends LitElement {
         @layer-order=${this._checkLayerOrder}
         @layer-deleted=${this._deleteLayer}
       ><slot></slot></div>
+      
       `;
   }
   _deleteLayer(e) {
-    console.log(e.target)
-    this._viewer.scene.imageryLayers.remove(e.detail);
+    // On itère sur chaque couche, si la couche cliquée est trouvée, on la supprime
+    for (let i = 0; i < this._viewer.scene.imageryLayers.length; i++) {
+      if (this._viewer.scene.imageryLayers.get(i).name === e.detail.layerName) {
+        this._viewer.scene.imageryLayers.remove(this._viewer.scene.imageryLayers.get(i));
+      }
+    }
   }
   _checkLayerOrder (e) {
     this.layerOrderList = e.detail;
@@ -271,6 +293,7 @@ export class CesiumViewer extends LitElement {
     );
     
     this._viewer = this._createCesiumViewer(this.renderRoot);
+    // this._querySwisstopo()
   }
 
   willUpdate(changedProperties) {
@@ -301,11 +324,6 @@ export class CesiumViewer extends LitElement {
       this._changeLayerOrder(this._viewer.scene.imageryLayers, this.layerOrderList);
     }
   }
-
-  _deleteLayer() {
-
-  }
-
   _changeLayerOrder (imageryLayers, layerOrderList) {
     
     // On parcourt la liste des couches
@@ -380,6 +398,8 @@ export class CesiumViewer extends LitElement {
         if (featureLayers.WMTS_format !== "png") {
           featureLayers.WMTS_format = "jpeg"
         }
+        // const imageryLayers = this._viewer.scene.imageryLayers;
+        // _addWebMapTileServiceImageryProvider(imageryLayers, featureLayer, imageryFormat, imageryTimestamp, tilingScheme, rectangle)
         const wmtsFeatureLayer =
           new WebMapTileServiceImageryProvider({
             
@@ -424,6 +444,56 @@ export class CesiumViewer extends LitElement {
       }
     }
   }
+  _addWebMapServiceImageryProvider(featureLayer, imageryFormat, tilingScheme, rectangle) {
+    const wmsFeatureLayer =
+      new WebMapServiceImageryProvider({
+        url: "https://wms.geo.admin.ch/",
+        layers: featureLayer,
+        parameters: {
+          format: `image/${imageryFormat}`,
+          transparent: true,
+        },
+        minimumLevel: 8,
+        maximumLevel: 17,
+        tilingScheme: tilingScheme,
+        rectangle: rectangle,
+        getFeatureInfoFormats: [
+          new GetFeatureInfoFormat(
+            "text",
+          ),
+        ],
+      });
+    
+  }
+
+  // async _querySwisstopo() {
+  //   const identifyResult = await this.identifyFeature.identifyUrl()
+  //   dataSource.then(function(dataSource) {
+  //     this._viewer.dataSources.add(dataSource);
+  //     const entities = dataSource.entities.values;
+  //     console.log(dataSource.entities)
+  //     for (let i = 0; i < entities.length; i++) {
+  //         const entity = entities[i];
+  //         // entity.polygon.extrudedHeight = 470;
+  //     }
+  // });
+  //   console.log(identifyResult)
+  // }
+
+  _addWebMapTileServiceImageryProvider(imageryLayers, featureLayer, imageryFormat, imageryTimestamp, tilingScheme, rectangle) {
+    console.log(featureLayer)
+    const wmtsLayer = new WebMapTileServiceImageryProvider({
+      url: `https://wmts.geo.admin.ch/1.0.0/${featureLayer}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.${imageryFormat}`,
+      layer: featureLayer,
+      style: "default",
+      format: `image/${imageryFormat}`,
+      tileMatrixSetID: imageryTimestamp,
+      maximumLevel: 17,
+      tilingScheme: tilingScheme,
+      rectangle: rectangle
+    });
+    
+  }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
     // this is the way the Cesium Viewer requires it to resolve its static resources
@@ -456,8 +526,6 @@ export class CesiumViewer extends LitElement {
         url: this.imageryProvider
       }),
     });
-
-    
 
     // Définit si les 3DTiles traversent le terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
@@ -492,7 +560,7 @@ export class CesiumViewer extends LitElement {
     // On applique ici un style blanc transparent, ce qui ne change pas la couleur des bâtiments
     swissTLM3D.readyPromise.then(function(swissTLM3D) {
       var style = new Cesium3DTileStyle({
-        color: 'color("GHOSTWHITE", 1)'
+        color: 'color("WHITE", 1)'
       });
       swissTLM3D.style = style;
     });
@@ -528,63 +596,116 @@ export class CesiumViewer extends LitElement {
         }
         // On différencie l'importation des couches WMS et WMTS
         if (this.featureLayers[i].type === "WMS" | this.featureLayers[i].type === "wms") {
-
-          const wmsFeatureLayer =
-            new WebMapServiceImageryProvider({
-              url: "https://wms.geo.admin.ch/",
-              layers: this.featureLayers[i].src,
-              parameters: {
-                format: `image/${imageryFormat}`,
-                transparent: true,
-              },
-              minimumLevel: 8,
-              maximumLevel: 17,
-              tilingScheme: tilingScheme,
-              rectangle: rectangle,
-              getFeatureInfoFormats: [
-                new GetFeatureInfoFormat(
-                  "text",
-                ),
-              ],
-            });
+          _addWebMapServiceImageryProvider(imageryLayers, this.featureLayers[i].src, imageryFormat, tilingScheme, rectangle);
           imageryLayers.addImageryProvider(wmsFeatureLayer);
-
         } else if (this.featureLayers[i].type === "WMTS" | this.featureLayers[i].type === "wmts") {
-          const wmtsFeatureLayer =
-          new WebMapTileServiceImageryProvider({
-            url: `https://wmts.geo.admin.ch/1.0.0/${this.featureLayers[i].src}/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.${imageryFormat}}`,
-            layer: this.featureLayers[i].src,
-            style: "default",
-            format: `image/${imageryFormat}`,
-            tileMatrixSetID: imageryTimestamp,
-            maximumLevel: 17,
-            tilingScheme: tilingScheme,
-            rectangle: rectangle
-          });
-          imageryLayers.addImageryProvider(wmtsFeatureLayer);
+          this._addWebMapTileServiceImageryProvider(imageryLayers, this.featureLayers[i].src, imageryFormat, imageryTimestamp, tilingScheme, rectangle);
+          imageryLayers.addImageryProvider(wmtsLayer);
         }
       }
     }
+
+
+    const coordinates = '6.5393000025488766,46.54339219475623';
+    let currentPrimitive = null;
+    
+    
     
 
-    // On ajoute la couches des routes qui restera toujours visible
-    const swissRoads =
-      new WebMapTileServiceImageryProvider({
-        url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
-        layer: "ch.swisstopo.swisstlm3d-strassen",
-        style: "default",
-        format: "image/png",
-        tileMatrixSetID: "current",
-        maximumLevel: 17,
-        tilingScheme: tilingScheme,
-        rectangle: rectangle
-      });
+    viewer.screenSpaceEventHandler.setInputAction(function(click) {
+    const pickedPosition = viewer.scene.pickPosition(click.position);
+    if (defined(pickedPosition)) {
+      
+      const lastImageryLayer = viewer.scene.imageryLayers._layers[imageryLayers._layers.length - 1].name;
+      console.log(lastImageryLayer)
+      const cartographic = Cartographic.fromCartesian(pickedPosition);
+      const longitudeString = Math.toDegrees(cartographic.longitude).toFixed(14);
+      const latitudeString = Math.toDegrees(cartographic.latitude).toFixed(14);
+      const heightString = cartographic.height.toFixed(3);
+      let positionString = longitudeString +','+ latitudeString;
+      let featureId;
+      console.log(positionString);
+      fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${positionString}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=10,10,10,10&imageDisplay=1276,1287,96&lang=fr&layers=all:${lastImageryLayer}&returnGeometry=true&sr=4326&tolerance=10`)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data.results[0].geometry)
+          const geojson = data.results[0].geometry;
+          featureId = data.results[0].featureId;
+          //console.log(featureId)
+          const dataSource = GeoJsonDataSource.load(geojson, {
+            stroke: Color.HOTPINK,
+            fill: Color.PINK,
+            strokeWidth: 3,
+          });
 
-    imageryLayers.addImageryProvider(swissRoads);
+      dataSource.then(function(dataSource) {
+        viewer.dataSources.add(dataSource);
+        const entities = dataSource.entities.values;
+        console.log(dataSource.entities)
+        for (let i = 0; i < entities.length; i++) {
+          const entity = entities[i];
+          // entity.polygon.extrudedHeight = 470;
+          if(currentPrimitive) {
+            viewer.scene.primitives.remove(currentPrimitive)
+          }
+
+          currentPrimitive =
+            new GroundPrimitive({
+              geometryInstances: new GeometryInstance({ 
+                geometry: new PolygonGeometry({
+                  polygonHierarchy: entity.polygon.hierarchy.getValue(),
+                  perPositionHeight: true,
+                }),
+                attributes: {
+                  color: ColorGeometryInstanceAttribute.fromColor(Color.WHITE.withAlpha(0.5)),
+                },
+              }),
+            })
+            viewer.scene.primitives.add(currentPrimitive);
+        }
+      });
+      fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/${lastImageryLayer}/${featureId}/htmlPopup?lang=fr`)
+        .then(response => response.text())
+        .then(data => {
+          console.log(data)
+          const popup = document.getElementById("popup");
+          popup.innerHTML = data;
+        })
+
+      console.log(featureId)
+    });
+    
+    }
+  }, ScreenSpaceEventType.LEFT_CLICK);
+    
+
+    console.log(viewer.dataSources)
+    this._addWebMapTileServiceImageryProvider(imageryLayers, "ch.swisstopo.swisstlm3d-strassen", "png", "current", tilingScheme, rectangle);
+
+    // console.log(swissRoads)
+    // On ajoute la couches des routes qui restera toujours visible
+    // const swissRoads =
+    //   new WebMapTileServiceImageryProvider({
+    //     url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
+    //     layer: "ch.swisstopo.swisstlm3d-strassen",
+    //     style: "default",
+    //     format: "image/png",
+    //     tileMatrixSetID: "current",
+    //     maximumLevel: 17,
+    //     tilingScheme: tilingScheme,
+    //     rectangle: rectangle
+    //   });
+
+    // imageryLayers.addImageryProvider(swissRoads);
 
     return viewer;
   }
+
+  
 }
+
+
+  
 
 if (!window.customElements.get("cesium-viewer")) {
   window.customElements.define("cesium-viewer", CesiumViewer);
