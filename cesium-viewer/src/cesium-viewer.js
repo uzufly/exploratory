@@ -32,8 +32,6 @@ import {
   PrimitiveCollection,
 } from "cesium";
 
-import identifyFeature from "./highlightFeature.js";
-
 import axios from 'axios';
 
 import {default as LayerPicker} from "./layer-picker.js";
@@ -235,7 +233,7 @@ export class CesiumViewer extends LitElement {
     this.cameraAngle = null;
     this.baseLayer = undefined;
 
-    this.identifyFeature = new identifyFeature();
+    // this.identifyFeature = new identifyFeature();
 
     this.swissBuildings = false;
     this.swissTrees = false;
@@ -562,7 +560,7 @@ export class CesiumViewer extends LitElement {
     // On applique ici un style blanc transparent, ce qui ne change pas la couleur des bâtiments
     swissTLM3D.readyPromise.then(function(swissTLM3D) {
       var style = new Cesium3DTileStyle({
-        color: 'color("GHOSTWHITE", 1)'
+        color: 'color("WHITE", 1)'
       });
       swissTLM3D.style = style;
     });
