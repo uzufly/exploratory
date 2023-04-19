@@ -286,6 +286,11 @@ export class CesiumViewer extends LitElement {
     this.swissTrees = target.swissTrees;
   }
 
+  get cesiumViewer() {
+    console.log(this._viewer)
+    return this._viewer;
+  }
+
   firstUpdated() {
     CesiumViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
@@ -294,7 +299,10 @@ export class CesiumViewer extends LitElement {
     
     this._viewer = this._createCesiumViewer(this.renderRoot);
     // this._querySwisstopo()
+    // this._cesiumViewer();
   }
+
+  
 
   willUpdate(changedProperties) {
     // Si on détecte un changement dans la propriété baseLayer

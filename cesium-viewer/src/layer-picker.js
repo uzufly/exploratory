@@ -7,6 +7,8 @@ import 'boxicons';
 
 import identifyFeature from "./highlightFeature.js";
 
+import "./cesium-viewer.js";
+
 export class LayerPicker extends LitElement {
 
     static get properties() {
@@ -17,11 +19,13 @@ export class LayerPicker extends LitElement {
             imageryBaseLayer: {type: String},
             vectorBaseLayer: {type: String},
             layerList: {type: Array},
+            viewer: {type: Object},
         };
     }
 
     constructor() {
         super();
+
         this.defaultBuildings = false;
         this.defaultTrees = false;
         this.swissTerrain = true;
@@ -163,6 +167,14 @@ export class LayerPicker extends LitElement {
         `;
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        // Access the Cesium Viewer instance in the connectedCallback lifecycle method
+        const cesiumViewer = this.getRootNode().querySelector('cesium-viewer').cesiumViewer;
+        // Use the cesiumViewer instance as needed
+        console.log(cesiumViewer);
+    }
+
     _renderBaseLayerPicker() {
         return html`
             <input type="radio" id="hillshade" name="base-layer" value="https://wmts100.geo.admin.ch/1.0.0/ch.swisstopo.swissalti3d-reliefschattierung/default/current/4326/{z}/{x}/{y}.png" @change=${this._onChangeBaseLayer} checked>
@@ -222,6 +234,7 @@ export class LayerPicker extends LitElement {
                 this.defaultTrees = true;
             }
         }
+        
         this._populateFeatureLayerMenu();
     }
 
@@ -400,6 +413,10 @@ export class LayerPicker extends LitElement {
         listItems.forEach((item) => {
             layerArray.push(item.getAttribute('data-value'));
         });
+
+        const cesiumViewer = this.getRootNode().querySelector('cesium-viewer').cesiumViewer;
+        // Use the cesiumViewer instance as needed
+        console.log('viewer', cesiumViewer.imageryLayers);
 
         this.dispatchEvent(new CustomEvent("feature-layer", {
             detail: {
