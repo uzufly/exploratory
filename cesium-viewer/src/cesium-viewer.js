@@ -20,11 +20,19 @@ import {
   CesiumTerrainProvider,
   GeoJsonDataSource,
   Color,
+  GroundPrimitive,
+  GeometryInstance,
+  PolygonGeometry,
+  ColorGeometryInstanceAttribute,
+  ScreenSpaceEventType,
+  PolygonHierarchy,
   HeightReference,
   EllipsoidGeodesic,
   JulianDate,
   PrimitiveCollection,
 } from "cesium";
+
+import identifyFeature from "./highlightFeature.js";
 
 import axios from 'axios';
 
@@ -227,6 +235,8 @@ export class CesiumViewer extends LitElement {
     this.cameraAngle = null;
     this.baseLayer = undefined;
 
+    this.identifyFeature = new identifyFeature();
+
     this.swissBuildings = false;
     this.swissTrees = false;
 
@@ -249,6 +259,7 @@ export class CesiumViewer extends LitElement {
         @layer-order=${this._checkLayerOrder}
         @layer-deleted=${this._deleteLayer}
       ><slot></slot></div>
+      
       `;
   }
   _deleteLayer(e) {
@@ -284,6 +295,7 @@ export class CesiumViewer extends LitElement {
     );
     
     this._viewer = this._createCesiumViewer(this.renderRoot);
+    // this._querySwisstopo()
   }
 
   willUpdate(changedProperties) {
@@ -456,6 +468,20 @@ export class CesiumViewer extends LitElement {
     
   }
 
+  // async _querySwisstopo() {
+  //   const identifyResult = await this.identifyFeature.identifyUrl()
+  //   dataSource.then(function(dataSource) {
+  //     this._viewer.dataSources.add(dataSource);
+  //     const entities = dataSource.entities.values;
+  //     console.log(dataSource.entities)
+  //     for (let i = 0; i < entities.length; i++) {
+  //         const entity = entities[i];
+  //         // entity.polygon.extrudedHeight = 470;
+  //     }
+  // });
+  //   console.log(identifyResult)
+  // }
+
   _addWebMapTileServiceImageryProvider(imageryLayers, featureLayer, imageryFormat, imageryTimestamp, tilingScheme, rectangle) {
     console.log(featureLayer)
     const wmtsLayer = new WebMapTileServiceImageryProvider({
@@ -581,46 +607,79 @@ export class CesiumViewer extends LitElement {
       }
     }
 
-    const coordinates = '6.5393000025488766,46.54339219475623'
-    fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${coordinates}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=1,1,1,1&imageDisplay=1,1,1&lang=fr&layers=all:ch.swisstopo-vd.geometa-nfgeom&returnGeometry=true&sr=4326&tolerance=0`)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data.results[0].geometry)
-        const geojson = data.results[0].geometry;
-        const dataSource = GeoJsonDataSource.load(geojson, {
-          stroke: Color.HOTPINK,
-          fill: Color.PINK,
-          strokeWidth: 3,
-        });
-        console.log(dataSource)
-        
 
-        viewer.zoomTo(dataSource);
+    const coordinates = '6.5393000025488766,46.54339219475623';
+    let currentPrimitive = null;
+    
+    
+    
 
-        dataSource.then(function(dataSource) {
-          viewer.dataSources.add(dataSource);
-          const entities = dataSource.entities.values;
-          console.log(dataSource.entities)
-          for (let i = 0; i < entities.length; i++) {
-            const entity = entities[i];
-            entity.polygon.material = Color.RED.withAlpha(0.5);
-            entity.polygon.extrudedHeight = 470;
-          //   entity.clampToGround = true;
-          //   // Get the position of the entity
-          //   console.log(entity)
-          //   // let position = entity.position.getValue(JulianDate.now());
+    viewer.screenSpaceEventHandler.setInputAction(function(click) {
+    const pickedPosition = viewer.scene.pickPosition(click.position);
+    if (defined(pickedPosition)) {
+      
+      const lastImageryLayer = viewer.scene.imageryLayers._layers[imageryLayers._layers.length - 1].name;
+      console.log(lastImageryLayer)
+      const cartographic = Cartographic.fromCartesian(pickedPosition);
+      const longitudeString = Math.toDegrees(cartographic.longitude).toFixed(14);
+      const latitudeString = Math.toDegrees(cartographic.latitude).toFixed(14);
+      const heightString = cartographic.height.toFixed(3);
+      let positionString = longitudeString +','+ latitudeString;
+      let featureId;
+      console.log(positionString);
+      fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${positionString}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=10,10,10,10&imageDisplay=1276,1287,96&lang=fr&layers=all:${lastImageryLayer}&returnGeometry=true&sr=4326&tolerance=10`)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data.results[0].geometry)
+          const geojson = data.results[0].geometry;
+          featureId = data.results[0].featureId;
+          //console.log(featureId)
+          const dataSource = GeoJsonDataSource.load(geojson, {
+            stroke: Color.HOTPINK,
+            fill: Color.PINK,
+            strokeWidth: 3,
+          });
 
-          //   // // Get the height difference between the ellipsoid and the geoid at the position
-          //   // let geodesic = new EllipsoidGeodesic();
-          //   // geodesic.setEndPoints(position, position);
-          //   // let heightDifference = viewer.scene.globe.getHeight(geodesic.endPoint) - geodesic.endPoint.height;
-
-          //   // // Adjust the position of the entity to the geoid height
-          //   // entity.position = new Cesium.ConstantPositionProperty(new Cesium.Cartesian3(position.x, position.y, position.z + heightDifference));
+      dataSource.then(function(dataSource) {
+        viewer.dataSources.add(dataSource);
+        const entities = dataSource.entities.values;
+        console.log(dataSource.entities)
+        for (let i = 0; i < entities.length; i++) {
+          const entity = entities[i];
+          // entity.polygon.extrudedHeight = 470;
+          if(currentPrimitive) {
+            viewer.scene.primitives.remove(currentPrimitive)
           }
-        });
-        
+
+          currentPrimitive =
+            new GroundPrimitive({
+              geometryInstances: new GeometryInstance({ 
+                geometry: new PolygonGeometry({
+                  polygonHierarchy: entity.polygon.hierarchy.getValue(),
+                  perPositionHeight: true,
+                }),
+                attributes: {
+                  color: ColorGeometryInstanceAttribute.fromColor(Color.WHITE.withAlpha(0.5)),
+                },
+              }),
+            })
+            viewer.scene.primitives.add(currentPrimitive);
+        }
       });
+      fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/${lastImageryLayer}/${featureId}/htmlPopup?lang=fr`)
+        .then(response => response.text())
+        .then(data => {
+          console.log(data)
+          const popup = document.getElementById("popup");
+          popup.innerHTML = data;
+        })
+
+      console.log(featureId)
+    });
+    
+    }
+  }, ScreenSpaceEventType.LEFT_CLICK);
+    
 
     console.log(viewer.dataSources)
     this._addWebMapTileServiceImageryProvider(imageryLayers, "ch.swisstopo.swisstlm3d-strassen", "png", "current", tilingScheme, rectangle);

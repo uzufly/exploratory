@@ -31,20 +31,24 @@ p {
   background-color: rgba(255,255,255,.68);
   backdrop-filter: blur(20px);
 }
+.popup {
+  background-color: rgba(255,255,255,.68);
+  backdrop-filter: blur(20px);
+  color: black;
+  height: auto;
+  position: absolute;
+  top: 7rem;
+  z-index: 1;
+  left: 2rem;
+  padding: 1rem;
+  border-radius: 1rem;
+}
 ul{
   list-style-type: none;
   padding:0;
   margin:0;
 }
-input[type="radio"] {
-    /* Add if not using autoprefixer */
-    -webkit-appearance: none;
-    appearance: none;
-    /* For iOS < 15 to remove gradient background */
-    background-color: #fff;
-    /* Not removed via appearance */
-    margin: 0;
-}
+
 cesium-viewer {
   height: 100%;
 }
