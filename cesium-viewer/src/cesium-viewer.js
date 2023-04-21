@@ -613,98 +613,79 @@ export class CesiumViewer extends LitElement {
       }
     }
 
-
-    const coordinates = '6.5393000025488766,46.54339219475623';
-    let currentPrimitive = null;
-    
-    
-    
-
+    // Information WMS on click
     viewer.screenSpaceEventHandler.setInputAction(function(click) {
     const pickedPosition = viewer.scene.pickPosition(click.position);
     if (defined(pickedPosition)) {
-      
+      // On va chercher le nom de la couche active
       const lastImageryLayer = viewer.scene.imageryLayers._layers[imageryLayers._layers.length - 1].name;
-      console.log(lastImageryLayer)
+
+      // On définit les coordonnées cliquées par l'utilisateur
       const cartographic = Cartographic.fromCartesian(pickedPosition);
       const longitudeString = Math.toDegrees(cartographic.longitude).toFixed(14);
       const latitudeString = Math.toDegrees(cartographic.latitude).toFixed(14);
       const heightString = cartographic.height.toFixed(3);
       let positionString = longitudeString +','+ latitudeString;
+      // On crée une nouvelle dataSource qui aura pour nom WMSinfo
+      const dataSources = new GeoJsonDataSource('WMSinfo');
       let featureId;
-      console.log(positionString);
+      
+      // On va chercher les couches geojson  qui intersect le point cliqué
       fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${positionString}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=10,10,10,10&imageDisplay=1276,1287,96&lang=fr&layers=all:${lastImageryLayer}&returnGeometry=true&sr=4326&tolerance=10`)
         .then(response => response.json())
         .then(data => {
-          console.log(data.results[0].geometry)
+          // On récupère la géométrie de la couche
           const geojson = data.results[0].geometry;
+          // On récupère l'ID de l'entité cliquée pour afficher ensuite les information
           featureId = data.results[0].featureId;
-          //console.log(featureId)
-          const dataSource = GeoJsonDataSource.load(geojson, {
+
+          // On load nnotre geojson avec les paramètres de style. Stroke ne fonctionne pas
+          dataSources.load(geojson, {
             stroke: Color.HOTPINK,
-            fill: Color.PINK,
+            fill: Color.PINK.withAlpha(0.5),
             strokeWidth: 3,
+            clampToGround: true,
+          })
+          // Om va chercher les couches dans datasource qui ont comme nom WMSinfo
+          // Si il y en a, on la supprime
+          .then(() => {
+            let wmsInfoLayer = viewer.dataSources.getByName('WMSinfo');
+            if (wmsInfoLayer.length > 0) {
+              viewer.dataSources.remove(wmsInfoLayer[0]);
+            }
+            // On ajoute notre dataSource
+            viewer.dataSources.add(dataSources);
+            
           });
+          // On va chercher les informations de l'entité cliquée en lui indiquant la couche et l'ID
+          fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/${lastImageryLayer}/${featureId}/htmlPopup?lang=fr`)
+            .then(response => response.text())
+            .then(data => {
+              // On affiche les informations dans un popup
+              const popup = document.getElementById("popup");
+              popup.innerHTML = data;
+          })
+        });
+      }
+    }, ScreenSpaceEventType.LEFT_CLICK);
 
-      dataSource.then(function(dataSource) {
-        viewer.dataSources.add(dataSource);
-        const entities = dataSource.entities.values;
-        console.log(dataSource.entities)
-        for (let i = 0; i < entities.length; i++) {
-          const entity = entities[i];
-          // entity.polygon.extrudedHeight = 470;
-          if(currentPrimitive) {
-            viewer.scene.primitives.remove(currentPrimitive)
-          }
-
-          currentPrimitive =
-            new GroundPrimitive({
-              geometryInstances: new GeometryInstance({ 
-                geometry: new PolygonGeometry({
-                  polygonHierarchy: entity.polygon.hierarchy.getValue(),
-                  perPositionHeight: true,
-                }),
-                attributes: {
-                  color: ColorGeometryInstanceAttribute.fromColor(Color.WHITE.withAlpha(0.5)),
-                },
-              }),
-            })
-            viewer.scene.primitives.add(currentPrimitive);
-        }
-      });
-      fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/${lastImageryLayer}/${featureId}/htmlPopup?lang=fr`)
-        .then(response => response.text())
-        .then(data => {
-          console.log(data)
-          const popup = document.getElementById("popup");
-          popup.innerHTML = data;
-        })
-
-      console.log(featureId)
-    });
-    
-    }
-  }, ScreenSpaceEventType.LEFT_CLICK);
-    
-
-    console.log(viewer.dataSources)
     this._addWebMapTileServiceImageryProvider(imageryLayers, "ch.swisstopo.swisstlm3d-strassen", "png", "current", tilingScheme, rectangle);
 
     // console.log(swissRoads)
     // On ajoute la couches des routes qui restera toujours visible
-    // const swissRoads =
-    //   new WebMapTileServiceImageryProvider({
-    //     url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
-    //     layer: "ch.swisstopo.swisstlm3d-strassen",
-    //     style: "default",
-    //     format: "image/png",
-    //     tileMatrixSetID: "current",
-    //     maximumLevel: 17,
-    //     tilingScheme: tilingScheme,
-    //     rectangle: rectangle
-    //   });
+    const swissRoads =
+      new WebMapTileServiceImageryProvider({
+        url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swisstlm3d-strassen/default/{TileMatrixSet}/4326/{TileMatrix}/{TileCol}/{TileRow}.png",
+        layer: "ch.swisstopo.swisstlm3d-strassen",
+        style: "default",
+        format: "image/png",
+        tileMatrixSetID: "current",
+        maximumLevel: 17,
+        tilingScheme: tilingScheme,
+        rectangle: rectangle
+      });
 
-    // imageryLayers.addImageryProvider(swissRoads);
+    imageryLayers.addImageryProvider(swissRoads);
 
     return viewer;
   }
