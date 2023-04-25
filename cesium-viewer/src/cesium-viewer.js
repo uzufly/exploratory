@@ -24,12 +24,20 @@ import {
   GeometryInstance,
   PolygonGeometry,
   ColorGeometryInstanceAttribute,
+  DistanceDisplayConditionGeometryInstanceAttribute,
   ScreenSpaceEventType,
   PolygonHierarchy,
   HeightReference,
   EllipsoidGeodesic,
   JulianDate,
   PrimitiveCollection,
+  Entity,
+  PolygonOutlineGeometry,
+  GroundPolylineGeometry,
+  GroundPolylinePrimitive,
+  PolylineColorAppearance,
+  PolylineMaterialAppearance,
+  Material,
 } from "cesium";
 
 import axios from 'axios';
@@ -616,40 +624,113 @@ export class CesiumViewer extends LitElement {
     // Information WMS on click
     viewer.screenSpaceEventHandler.setInputAction(function(click) {
     const pickedPosition = viewer.scene.pickPosition(click.position);
-    if (defined(pickedPosition)) {
-      // On va chercher le nom de la couche active
-      const lastImageryLayer = viewer.scene.imageryLayers._layers[imageryLayers._layers.length - 1].name;
+      if (defined(pickedPosition)) {
+        // On va chercher le nom de la couche active
+        const lastImageryLayer = viewer.scene.imageryLayers._layers[imageryLayers._layers.length - 1].name;
 
-      // On définit les coordonnées cliquées par l'utilisateur
-      const cartographic = Cartographic.fromCartesian(pickedPosition);
-      const longitudeString = Math.toDegrees(cartographic.longitude).toFixed(14);
-      const latitudeString = Math.toDegrees(cartographic.latitude).toFixed(14);
-      const heightString = cartographic.height.toFixed(3);
-      let positionString = longitudeString +','+ latitudeString;
-      // On crée une nouvelle dataSource qui aura pour nom WMSinfo
-      const dataSources = new GeoJsonDataSource('WMSinfo');
-      let featureId;
-      
-      // On va chercher les couches geojson  qui intersect le point cliqué
-      fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${positionString}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=10,10,10,10&imageDisplay=1276,1287,96&lang=fr&layers=all:${lastImageryLayer}&returnGeometry=true&sr=4326&tolerance=10`)
-        .then(response => response.json())
-        .then(data => {
-          // On récupère la géométrie de la couche
-          const geojson = data.results[0].geometry;
-          // On récupère l'ID de l'entité cliquée pour afficher ensuite les information
-          featureId = data.results[0].featureId;
+        // On définit les coordonnées cliquées par l'utilisateur
+        const cartographic = Cartographic.fromCartesian(pickedPosition);
+        const longitudeString = Math.toDegrees(cartographic.longitude).toFixed(14);
+        const latitudeString = Math.toDegrees(cartographic.latitude).toFixed(14);
+        const heightString = cartographic.height.toFixed(3);
+        let positionString = longitudeString +','+ latitudeString;
+        // On crée une nouvelle dataSource qui aura pour nom WMSinfo
+        const dataSources = new GeoJsonDataSource('WMSinfo');
+        let featureId;
+        
+        // On va chercher les couches geojson  qui intersect le point cliqué
+        fetch(`https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=${positionString}&geometryFormat=geojson&geometryType=esriGeometryPoint&mapExtent=10,10,10,10&imageDisplay=1276,1287,96&lang=fr&layers=all:${lastImageryLayer}&returnGeometry=true&sr=4326&tolerance=10`)
+          .then(response => response.json())
+          .then(data => {
+            // On récupère la géométrie de la couche
+            const geojson = data.results[0].geometry;
+            const coordinates = geojson.coordinates[0];
+            if (!coordinates.length) return;
+            // On enlève les Ground Primitives si elles existent
+            for (let i = 0; i < viewer.scene.groundPrimitives.length; i++) {
+              let primitive = viewer.scene.groundPrimitives.get(i);
+              // POn check si la primitive dans la collection est une GroundPolylinePrimitive
+              if (primitive instanceof GroundPolylinePrimitive) {
+                // On enlève la primitive de la collection
+                viewer.scene.groundPrimitives.remove(primitive);
+                i--; // On décrémente i pour ne pas sauter de primitive
+              }
+            }
+            // Ajout des polylines en tant que Ground Primitives
+            // On ajoute d'abord un buffer à la zone (cas d'utilisation pour informations des batiments)
+            for (let i = 0; i < coordinates.length; i++) {
+              let coord = coordinates[i];
+              console.log(coord.length)
+              let positions = [];
 
-          // On load nnotre geojson avec les paramètres de style. Stroke ne fonctionne pas
-          dataSources.load(geojson, {
-            stroke: Color.HOTPINK,
-            fill: Color.PINK.withAlpha(0.5),
-            strokeWidth: 3,
-            clampToGround: true,
-          })
-          // Om va chercher les couches dans datasource qui ont comme nom WMSinfo
-          // Si il y en a, on la supprime
+              for (let j = 0; j < coord.length; j++) {
+                let lon = coord[j][0];
+                let lat = coord[j][1];
+                let position = Cartesian3.fromDegrees(lon, lat);
+                positions.push(position);
+              }
+
+              let instance = new GeometryInstance({
+                geometry : new GroundPolylineGeometry({
+                  positions : positions,
+                  width : 40
+                }),
+                id : 'buffer'
+              });
+
+              viewer.scene.groundPrimitives.add(new GroundPolylinePrimitive({
+                geometryInstances : instance,
+                appearance : new PolylineMaterialAppearance({
+                  material : Material.fromType('Color', {
+                    color : Color.fromCssColorString('#0060df')
+                  })
+
+                })
+              }));
+            }
+            // On ajoute de nouveau les polylines de la couche mais cette fois-ci en tant que Outline
+            for (let i = 0; i < coordinates.length; i++) {
+              let coord = coordinates[i];
+              console.log(coord.length)
+              let positions = [];
+
+              for (let j = 0; j < coord.length; j++) {
+                let lon = coord[j][0];
+                let lat = coord[j][1];
+                let position = Cartesian3.fromDegrees(lon, lat);
+                positions.push(position);
+              }
+
+              let instance = new GeometryInstance({
+                geometry : new GroundPolylineGeometry({
+                  positions : positions,
+                  width : 20
+                }),
+                id : 'outline'
+              });
+
+              viewer.scene.groundPrimitives.add(new GroundPolylinePrimitive({
+                geometryInstances : instance,
+                appearance : new PolylineMaterialAppearance({
+                  material : Material.fromType('Color', {
+                    color : Color.fromCssColorString('#ff8000')
+                  })
+
+                })
+              }));
+            }
+            // On récupère l'ID de l'entité cliquée pour afficher ensuite les information
+            featureId = data.results[0].featureId;
+            // On load nnotre geojson avec les paramètres de style. Stroke ne fonctionne pas
+            dataSources.load(geojson, {
+              fill: Color.fromCssColorString('#ffff10'),
+              clampToGround: true,
+            })
+            // Om va chercher les couches dans datasource qui ont comme nom WMSinfo
+            // Si il y en a, on la supprime
           .then(() => {
             let wmsInfoLayer = viewer.dataSources.getByName('WMSinfo');
+            
             if (wmsInfoLayer.length > 0) {
               viewer.dataSources.remove(wmsInfoLayer[0]);
             }
