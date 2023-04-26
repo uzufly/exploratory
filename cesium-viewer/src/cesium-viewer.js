@@ -644,8 +644,10 @@ export class CesiumViewer extends LitElement {
           .then(data => {
             // On récupère la géométrie de la couche
             const geojson = data.results[0].geometry;
+            console.log(geojson)
             const coordinates = geojson.coordinates[0];
             if (!coordinates.length) return;
+            console.log('coorindates', coordinates)
             // On enlève les Ground Primitives si elles existent
             for (let i = 0; i < viewer.scene.groundPrimitives.length; i++) {
               let primitive = viewer.scene.groundPrimitives.get(i);
@@ -656,24 +658,21 @@ export class CesiumViewer extends LitElement {
                 i--; // On décrémente i pour ne pas sauter de primitive
               }
             }
-            // Ajout des polylines en tant que Ground Primitives
-            // On ajoute d'abord un buffer à la zone (cas d'utilisation pour informations des batiments)
-            for (let i = 0; i < coordinates.length; i++) {
-              let coord = coordinates[i];
-              console.log(coord.length)
+            // Si l'entité est un polygone
+            if (geojson.type === "Polygon") {
               let positions = [];
-
-              for (let j = 0; j < coord.length; j++) {
-                let lon = coord[j][0];
-                let lat = coord[j][1];
+              for (let i = 0; i < coordinates.length; i++) {
+                let lon = coordinates[i][0];
+                let lat = coordinates[i][1];
                 let position = Cartesian3.fromDegrees(lon, lat);
                 positions.push(position);
               }
+              console.log('positions', positions)
 
               let instance = new GeometryInstance({
                 geometry : new GroundPolylineGeometry({
-                  positions : positions,
-                  width : 40
+                  positions : positions, // On ajoute les positions
+                  width : 20 // On ajoute la largeur
                 }),
                 id : 'buffer'
               });
@@ -682,48 +681,82 @@ export class CesiumViewer extends LitElement {
                 geometryInstances : instance,
                 appearance : new PolylineMaterialAppearance({
                   material : Material.fromType('Color', {
-                    color : Color.fromCssColorString('#0060df')
+                    color : Color.fromCssColorString('#ff8000').withAlpha(0.5)
                   })
 
                 })
               }));
             }
-            // On ajoute de nouveau les polylines de la couche mais cette fois-ci en tant que Outline
-            for (let i = 0; i < coordinates.length; i++) {
-              let coord = coordinates[i];
-              console.log(coord.length)
-              let positions = [];
+            // Ajout des polylines en tant que Ground Primitives si l'entité est un multiPolygon
+            // On ajoute d'abord un buffer à la zone (cas d'utilisation pour informations des batiments)
+            if (geojson.type === "MultiPolygon") {
+            //   for (let i = 0; i < coordinates.length; i++) {
+            //     let coord = coordinates[i];
+            //     console.log(coord)
+            //     let positions = [];
 
-              for (let j = 0; j < coord.length; j++) {
-                let lon = coord[j][0];
-                let lat = coord[j][1];
-                let position = Cartesian3.fromDegrees(lon, lat);
-                positions.push(position);
-              }
+            //     for (let j = 0; j < coord.length; j++) {
+            //       let lon = coord[j][0];
+            //       let lat = coord[j][1];
+            //       let position = Cartesian3.fromDegrees(lon, lat);
+            //       positions.push(position);
+            //     }
 
-              let instance = new GeometryInstance({
-                geometry : new GroundPolylineGeometry({
-                  positions : positions,
-                  width : 20
-                }),
-                id : 'outline'
-              });
+            //     let instance = new GeometryInstance({
+            //       geometry : new GroundPolylineGeometry({
+            //         positions : positions,
+            //         width : 40
+            //       }),
+            //       id : 'buffer'
+            //     });
 
-              viewer.scene.groundPrimitives.add(new GroundPolylinePrimitive({
-                geometryInstances : instance,
-                appearance : new PolylineMaterialAppearance({
-                  material : Material.fromType('Color', {
-                    color : Color.fromCssColorString('#ff8000')
+            //     viewer.scene.groundPrimitives.add(new GroundPolylinePrimitive({
+            //       geometryInstances : instance,
+            //       appearance : new PolylineMaterialAppearance({
+            //         material : Material.fromType('Color', {
+            //           color : Color.fromCssColorString('#0060df').withAlpha(0.5)
+            //         })
+
+            //       })
+            //     }));
+            //   }
+              // On ajoute de nouveau les polylines de la couche mais cette fois-ci en tant que Outline
+              for (let i = 0; i < coordinates.length; i++) {
+                let coord = coordinates[i];
+                console.log(coord.length)
+                let positions = [];
+
+                for (let j = 0; j < coord.length; j++) {
+                  let lon = coord[j][0];
+                  let lat = coord[j][1];
+                  let position = Cartesian3.fromDegrees(lon, lat);
+                  positions.push(position);
+                }
+
+                let instance = new GeometryInstance({
+                  geometry : new GroundPolylineGeometry({
+                    positions : positions,
+                    width : 20
+                  }),
+                  id : 'outline'
+                });
+
+                viewer.scene.groundPrimitives.add(new GroundPolylinePrimitive({
+                  geometryInstances : instance,
+                  appearance : new PolylineMaterialAppearance({
+                    material : Material.fromType('Color', {
+                      color : Color.fromCssColorString('#ff8000').withAlpha(0.5)
+                    })
+
                   })
-
-                })
-              }));
+                }));
+              }
             }
             // On récupère l'ID de l'entité cliquée pour afficher ensuite les information
             featureId = data.results[0].featureId;
             // On load nnotre geojson avec les paramètres de style. Stroke ne fonctionne pas
             dataSources.load(geojson, {
-              fill: Color.fromCssColorString('#ffff10'),
+              fill: Color.fromCssColorString('#ffff10').withAlpha(0.5),
               clampToGround: true,
             })
             // Om va chercher les couches dans datasource qui ont comme nom WMSinfo
