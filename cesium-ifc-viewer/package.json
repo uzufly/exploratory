@@ -4,10 +4,7 @@
   "description": "An exploratory ‹cesium-ifc-viewer› Web Component",
   "module": "dist/cesium-ifc-viewer.js",
   "source": "src/cesium-ifc-viewer.js",
-  "author": "Olivier Lange (https://github.com/olange)",
-  "contributors": [
-    "Theo Gerritsen (https://github.com/theogerritsen)"
-  ],
+  "author": "Uzufly sàrl (https://uzufly.com/)",
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public",

@@ -2,6 +2,7 @@
   "name": "@uzufly/cesium-layer-picker",
   "version": "0.2.0",
   "description": "Cesium layer picker with swisstopo layers",
+  "author": "Uzufly sàrl (https://uzufly.com/)",
   "keywords": [
     "custom-element",
     "web-components",
