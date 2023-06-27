@@ -528,7 +528,7 @@ export class CesiumViewer extends LitElement {
     let terrainProvider;
     if (this.swissTerrainProvider) {
       terrainProvider = new CesiumTerrainProvider({
-        url: "https://3d.geo.admin.ch/1.0.0/ch.swisstopo.terrain.3d/default/20160115/4326/"
+        url: "https://terrain100.geo.admin.ch/1.0.0/ch.swisstopo.terrain.3d"
       });
     }
 
