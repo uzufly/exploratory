@@ -1,6 +1,6 @@
 {
   "name": "@uzufly/cesium-layer-picker",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Cesium layer picker with swisstopo layers",
   "author": "Uzufly sàrl (https://uzufly.com/)",
   "keywords": [
@@ -40,14 +40,14 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@parcel/transformer-inline-string": "^2.8.3",
+    "@parcel/transformer-inline-string": "^2.10.0",
     "del-cli": "^5.0.0",
     "eslint": "^8.36.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-custom-elements": "^0.0.7",
     "make-dir-cli": "^3.0.0",
-    "parcel": "latest",
-    "parcel-reporter-static-files-copy": "^1.5.0",
+    "parcel": "^2.10",
+    "parcel-reporter-static-files-copy": "^1.5.3",
     "prettier": "^2.8.6"
   },
   "dependencies": {
@@ -56,7 +56,7 @@
     "cesium": "^1.104.0",
     "lit": "^2.7.0"
   },
-  "browser": {
+  "alias": {
     "assert": false,
     "buffer": false,
     "crypto": false,
