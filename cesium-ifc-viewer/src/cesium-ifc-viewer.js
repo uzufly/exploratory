@@ -233,10 +233,10 @@ export class CesiumIfcViewer extends LitElement {
 
     const layer = viewer.imageryLayers.addImageryProvider(
       new OpenStreetMapImageryProvider({
-        url: "https://stamen-tiles.a.ssl.fastly.net/toner/",
+        url: "https://tiles.stadiamaps.com/tiles/stamen_toner/",
         fileExtension: "png",
         credit:
-          "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
+          "Map tiles hosting by Stadia Maps, design by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
       })
     );
 
