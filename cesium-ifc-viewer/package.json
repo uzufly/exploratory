@@ -51,7 +51,7 @@
     "prettier": "^2.8.6"
   },
   "dependencies": {
-    "cesium": "1.103.0",
+    "cesium": "^1.110.0",
     "lit": "^3.0.0",
     "web-ifc": "0.0.35",
     "web-ifc-three": "0.0.121",

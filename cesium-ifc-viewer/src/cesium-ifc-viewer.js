@@ -3,7 +3,7 @@ import {
   Ion,
   Viewer,
   ShadowMode,
-  createWorldTerrain,
+  createWorldTerrainAsync,
   defined,
   Color,
   Entity,
@@ -11,7 +11,6 @@ import {
   ScreenSpaceEventType,
   Cesium3DTileStyle,
   Cesium3DTileset,
-  IonResource,
   Cartesian3,
   Matrix4,
   HeightReference,
@@ -201,12 +200,12 @@ export class CesiumIfcViewer extends LitElement {
     // viewerArg is unused
   }
 
-  firstUpdated() {
+  async firstUpdated() {
     CesiumIfcViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
       this.ionAccessToken
     );
-    this._viewer = this._createCesiumViewer(this.renderRoot);
+    this._viewer = await this._createCesiumViewer(this.renderRoot);
   }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {
@@ -221,25 +220,24 @@ export class CesiumIfcViewer extends LitElement {
     } // … more side-effects! contained at least
   }
 
-  _createCesiumViewer(containerEl) {
+  async _createCesiumViewer(containerEl) {
     const viewer = new Viewer(containerEl, {
       ...ourViewerOptions,
-      terrainProvider: createWorldTerrain(),
+      terrainProvider: await createWorldTerrainAsync(),
     });
 
     // Make the 3D Tilesets have higher priority than terrain,
     // when they would be below the terrain surface
     viewer.scene.globe.depthTestAgainstTerrain = false;
 
-    const layer = viewer.imageryLayers.addImageryProvider(
-      new OpenStreetMapImageryProvider({
-        url: "https://tiles.stadiamaps.com/tiles/stamen_toner/",
-        fileExtension: "png",
-        credit:
-          "Map tiles hosting by Stadia Maps, design by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
-      })
-    );
+    const OSMImageryLayer = new OpenStreetMapImageryProvider({
+      url: "https://tiles.stadiamaps.com/tiles/stamen_toner/",
+      fileExtension: "png",
+      credit: "Map tiles hosting by Stadia Maps, design by Stamen Design,"
+        + " under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
+    });
 
+    const layer = viewer.imageryLayers.addImageryProvider(OSMImageryLayer);
     layer.contrast = 0.85;
 
     const dragDropMixinOptions = {
@@ -254,11 +252,13 @@ export class CesiumIfcViewer extends LitElement {
 
     viewer.clock.currentTime = JulianDate.fromIso8601("2022-08-01T12:00:00Z");
 
-    const tileset = new Cesium3DTileset({
-      url: IonResource.fromAssetId(CESIUM_VERNETS_CLIPPED_ION_ASSET_ID),
-      shadows: ShadowMode.DISABLED,
-      maximumScreenSpaceError: 1,
-    });
+    const tileset = await Cesium3DTileset.fromIonAssetId(
+      CESIUM_VERNETS_CLIPPED_ION_ASSET_ID,
+      {
+        shadows: ShadowMode.DISABLED,
+        maximumScreenSpaceError: 1,
+      }
+    );
 
     let translation = Cartesian3.fromArray([0.0, 0.0, 6]);
     let matrix = Matrix4.fromTranslation(translation);
@@ -269,10 +269,10 @@ export class CesiumIfcViewer extends LitElement {
       heightReference: HeightReference.CLAMP_TO_GROUND,
     });
 
-    const socle = new Cesium3DTileset({
-      url: IonResource.fromAssetId(SOCLE_VERNETS_CNPA_ION_ASSET_ID), // ifc-cesium-showcase-socle-vernets-CNPA-v2
-      shadows: ShadowMode.DISABLED,
-    });
+    const socle = await Cesium3DTileset.fromIonAssetId(
+      SOCLE_VERNETS_CNPA_ION_ASSET_ID,
+      { shadows: ShadowMode.DISABLED }
+    );
 
     socle.modelMatrix = matrix;
 
