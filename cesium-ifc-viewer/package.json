@@ -1,6 +1,6 @@
 {
   "name": "@uzufly/cesium-ifc-viewer",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "An exploratory ‹cesium-ifc-viewer› Web Component",
   "module": "dist/cesium-ifc-viewer.js",
   "source": "src/cesium-ifc-viewer.js",
