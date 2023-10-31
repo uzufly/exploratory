@@ -42,13 +42,13 @@
   "devDependencies": {
     "@parcel/transformer-inline-string": "^2.10.1",
     "del-cli": "^5.0.0",
-    "eslint": "^8.36.0",
-    "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-custom-elements": "^0.0.7",
+    "eslint": "^8.52.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-custom-elements": "^0.0.8",
     "make-dir-cli": "^3.0.0",
     "parcel": "^2.10.1",
     "parcel-reporter-static-files-copy": "^1.5.3",
-    "prettier": "^2.8.6"
+    "prettier": "^3.0.3"
   },
   "dependencies": {
     "cesium": "^1.110.0",
