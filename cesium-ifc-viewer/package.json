@@ -1,9 +1,26 @@
 {
   "name": "@uzufly/cesium-ifc-viewer",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "An exploratory ‹cesium-ifc-viewer› Web Component",
-  "module": "dist/cesium-ifc-viewer.js",
-  "source": "src/cesium-ifc-viewer.js",
+  "type": "module",
+  "source": [
+    "./src/index.js",
+    "./src/cesium-ifc-viewer.js",
+    "./src/cesium-ifc-viewer-data-attribution.js"
+  ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./cesium-ifc-viewer": "./dist/cesium-ifc-viewer.js",
+    "./cesium-ifc-viewer-data-attribution": "./dist/cesium-ifc-viewer-data-attribution.js"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/cesium-ifc-viewer.js",
+    "dist/cesium-ifc-viewer.js.map",
+    "dist/cesium-ifc-viewer-data-attribution.js",
+    "dist/cesium-ifc-viewer-data-attribution.js.map"
+  ],
   "author": "Uzufly sàrl (https://uzufly.com/)",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -25,7 +42,7 @@
     "format": "prettier \"{src,examples}/**/*.{js,html,css}\" --write",
     "lint": "eslint . --ext .js",
     "start": "parcel index.html",
-    "build": "parcel build --public-url ./",
+    "build": "parcel build --public-url ./ src/index.js src/cesium-ifc-viewer*.js",
     "prebuild": "npm run clean && npm run lint && npx make-dir dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepublishOnly": "npm run build"
@@ -57,6 +74,9 @@
     "web-ifc-three": "0.0.121",
     "web-ifc-viewer": "1.0.213"
   },
+  "@parcel/resolver-default": {
+    "packageExports": true
+  },
   "alias": {
     "assert": false,
     "buffer": false,
@@ -72,10 +92,6 @@
     "util": false,
     "zlib": false
   },
-  "files": [
-    "dist/cesium-ifc-viewer.js",
-    "dist/cesium-ifc-viewer.js.map"
-  ],
   "//": "note the *.wasm entries should come last, otherwise the plugin complains about `dist/static/` dir missing",
   "staticFiles": [
     {

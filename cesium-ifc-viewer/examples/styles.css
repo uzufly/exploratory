@@ -42,3 +42,22 @@ cesium-ifc-viewer::part(msg) {
   border: black solid 0.25rem;
   background-color: white;
 }
+cesium-ifc-viewer-data-attribution {
+  position: absolute;
+  top: 3.5rem;
+  right: 3.5rem;
+  z-index: 1;
+}
+cesium-ifc-viewer-data-attribution::part(dialog) {
+  width: 60vw;
+  padding: 2rem;
+  border: black solid 0.25rem;
+}
+cesium-ifc-viewer-data-attribution::part(dialog-open),
+cesium-ifc-viewer-data-attribution::part(dialog-close) {
+  padding: 0.5rem 1rem;
+  color: white;
+  background-color: black;
+  border-radius: 1.5rem;
+  border-style: none;
+}

@@ -176,6 +176,15 @@ export class CesiumIfcViewer extends LitElement {
     this._dropError = null;
   }
 
+  /**
+   * The Cesium Viewer instance, available once it has been created
+   * by the `_createCesiumViewer()` private method, upon first update.
+   * Namely used by the `‹cesium-ifc-viewer-data-attribution›` custom element.
+   */
+  get viewer() {
+    return this._viewer;
+  }
+
   render() {
     return [this.renderSlotted(), this.renderDropErrorIfAny()];
   }
@@ -206,6 +215,11 @@ export class CesiumIfcViewer extends LitElement {
       this.ionAccessToken
     );
     this._viewer = await this._createCesiumViewer(this.renderRoot);
+    this.fireReady();
+  }
+
+  fireReady() {
+    return this.dispatchEvent(new CustomEvent("ready", { composed: true }));
   }
 
   static _setCesiumGlobalConfig(cesiumBaseURL, ionAccessToken) {

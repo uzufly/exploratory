@@ -8,11 +8,12 @@ MVP quality. Package was built during a hackathon: it worked, we shipped it, to 
 
 ## Features
 
-* Drag & drop IFC file to import it
-* View the imported IFC model in the Cesium 3D canvas
-* Highlight IFC model parts on mouse hover
-* Tooltip with level and category names, while hovering model parts
-* Pick a model part (only shows Cesium's InfoBox with its ID so far).
+* Drag & drop IFC file to import it;
+* View the imported IFC model in the Cesium 3D canvas;
+* Highlight IFC model parts on mouse hover;
+* Tooltip with level and category names, while hovering model parts;
+* Pick a model part (only shows Cesium's InfoBox with its ID so far);
+* Custom data attribution dialog.
 
 ## How does it work?
 
@@ -41,18 +42,23 @@ Import as ES modules:
 
 ```js
 import '@uzufly/cesium-ifc-viewer'
+import '@uzufly/cesium-ifc-viewer-data-attribution'
 ```
 
 And use with such HTML code:
 
 ```html
 <cesium-ifc-viewer
+  id="mainViewer"
   cesium-base-url="/static/" ifc-base-url="../../static/"
   ion-access-token="‹CESIUM_ION_ACCESS_TOKEN›"
   model-origin="[ 6.137499506, 46.192506022, 425.999 ]"
   model-orientation="[ 90, 0, 0 ]"
   clamp-to-ground>
 </cesium-ifc-viewer>
+
+<cesium-ifc-viewer-data-attribution for="mainViewer">
+</cesium-ifc-viewer-data-attribution>
 ```
 
 ## Further work
@@ -79,4 +85,4 @@ Browsers without native [custom element support][support] require a [polyfill][]
 
 ## License
 
-Distributed under the Apache-2.0 license. See LICENSE for details.
+Distributed under the Apache-2.0 license. See [LICENSE](./LICENSE) for details.

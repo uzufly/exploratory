@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="en">
   <head>
@@ -9,6 +9,7 @@
   </head>
   <body>
     <cesium-ifc-viewer
+      id="mainViewer"
       cesium-base-url="/static/"
       ifc-base-url="../../static/"
       ion-access-token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5ZGJmOTA1NS0wOGE4LTQ4NjYtYmJmZC1iMTE1NzRjZjIxNTUiLCJpZCI6MzIzMDIsImlhdCI6MTY3ODIwNjY0OX0.b5BZMKngT-7-Tw9hbg_6kfqMG7n9_f7dgMNq_5uEZbY"
@@ -22,6 +23,10 @@
         canvas.
       </p>
     </cesium-ifc-viewer>
-    <script type="module" src="../src/cesium-ifc-viewer.js"></script>
+    <cesium-ifc-viewer-data-attribution for="mainViewer"></cesium-ifc-viewer-data-attribution>
+    <script type="module">
+      import '../src/cesium-ifc-viewer.js';
+      import '../src/cesium-ifc-viewer-data-attribution.js';
+    </script>
   </body>
 </html>
