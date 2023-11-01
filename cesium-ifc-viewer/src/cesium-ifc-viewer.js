@@ -50,11 +50,14 @@ const ourViewerOptions = {
  * redefines `Ion.defaultAccessToken` with your Ion Access Token,
  * when you provide one, by defining the `ion-access-token` attribute.
  *
- * @fires (nothing)
- * @slot - This element has a default slot, styled to position its
- *   contents on top of the generated Cesium container. Additional
+ * @fires `ready` - Fired when the Cesium Viewer has been instantiated.
+ *
+ * @slot default - This element has a default slot, styled to position
+ *   its contents on top of the generated Cesium container. Additional
  *   styling can be applied with a `::slotted(text)` pseudo-element.
- * @csspart slotted - The slotted content's `<div>` container element.
+ *
+ * @csspart slotted - The `<div>` container element of the slotted content.
+ * @csspart msg - The `<div>` container element of any error message.
  */
 export class CesiumIfcViewer extends LitElement {
   static properties = {
@@ -179,10 +182,38 @@ export class CesiumIfcViewer extends LitElement {
   /**
    * The Cesium Viewer instance, available once it has been created
    * by the `_createCesiumViewer()` private method, upon first update.
-   * Namely used by the `‹cesium-ifc-viewer-data-attribution›` custom element.
+   *
+   * Returns a WeakRef, which needs to be deferenced (`.deref()`);
+   * this allows the Viewer instance to be garbage-collected when
+   * the custom element is removed from the DOM.
    */
   get viewer() {
-    return this._viewer;
+    return new WeakRef(this._viewer);
+  }
+
+  /**
+   * @returns {Node} A clone of the DOM element containing the list of
+   * credits that Cesium would display on screen and in the lightbox.
+   * Returns undefined, if the Viewer has not been instantiated yet.
+   * This list is computed and rendered by the CreditDisplay object of
+   * the Viewer. Results may vary for each call, as the list of credits
+   * is updated for every data source that is added to the Viewer.
+   */
+  get viewerCreditList() {
+    // The `CreditDisplay` object of the Viewer manages the list of
+    // credits to display on screen and in the lightbox
+    const creditDisplay = this._viewer?.creditDisplay;
+
+    // This CreditDisplay has a private property `_creditList` which
+    // is a DOM element containing the list of credits to display,
+    // that the CreditDisplay object computes and renders.
+    //
+    // This access to a private prop is bit hacky, but since the computed
+    // credits array is not exposed as a method or property, grabing the
+    // private resulting rendered value is the best we can do for now.
+    //
+    // We clone it to avoid side-effects on the original element.
+    return creditDisplay?._creditList.cloneNode(true);
   }
 
   render() {

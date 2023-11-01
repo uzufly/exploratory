@@ -61,10 +61,10 @@ export class CesiumIfcViewerDataAttribution extends LitElement {
         }
         dialog {
           color: white;
-          background-color: darkgray;
+          background-color: #444;
         }
         dialog::backdrop {
-          background-color: rgba(240, 240, 240, 0.8);
+          background-color: rgba(240, 240, 240, 0.6);
         }
         dialog h1 {
           margin-block-start: 0;
@@ -85,7 +85,7 @@ export class CesiumIfcViewerDataAttribution extends LitElement {
       </div>
       <dialog part="dialog">
         <h1><slot name="dialog-title">Data provided by</slot></h1>
-        ${until(this._creditsEl?.deref(), html`<p>Loading...</p>`)}
+        ${until(this._creditsEl, html`<p>Loading...</p>`)}
         <form method="dialog"><button part="dialog-close">Close</button></form>
       </dialog>
     `;
@@ -95,10 +95,11 @@ export class CesiumIfcViewerDataAttribution extends LitElement {
     this._dialogEl = this.renderRoot.querySelector(`dialog`);
     this._viewerEl = document.querySelector(`cesium-ifc-viewer#${this.for}`);
     this._viewerEl.addEventListener( "ready", () => {
-      // Let's get the credits directly from the internals of the Cesium Viewer
-      // Widget, as there is no API for this; establish a weak reference to the
-      // UL element containing the credits, so to allow for garbage collection
-      this._creditsEl = new WeakRef(this._viewerEl.viewer.creditDisplay._creditList);
+      // Grab the credits directly from the internals of the Cesium
+      // `Viewer` widget (more precisely, from the internals of its
+      // `CreditDisplay` object, which manages the credits), as Cesium
+      // provides no API for this
+      this._creditsEl = this._viewerEl.viewerCreditList;
     });
   }
 
