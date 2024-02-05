@@ -250,6 +250,35 @@ export class CesiumIfcViewer extends LitElement {
     // viewerArg is unused
   }
 
+  /*------------------------------------------------------------------------------------------------------------------------ */
+  /**
+ * This module provides functionality for loading and displaying 3D objects from a server.
+ * It uses the Three.js library to create meshes from the loaded objects from speckle and display them in a 3D scene.
+ *
+ * The main method is `_load`, which fetches the objects from the server and processes them.
+ * If an object has vertices and faces, it is stored for later processing.
+ * If an object has a "@displayValue" property, the method finds the corresponding object and stores it.
+ *
+ * The `_getCorrespondingObject` method is used to find an object that corresponds to a given ID in an array of objects.
+ *
+ * The `_createMeshes` method processes the vertices and face indices of the objects and creates meshes from them.
+ * It creates a new mesh whenever it encounters a face index of 0.
+ *
+ * The `createMesh` method creates a single mesh from given vertices and faces.
+ * It creates a new THREE.BufferGeometry object and sets its 'position' attribute and index.
+ * It then creates a new THREE.Mesh object with the geometry and a basic material and returns it.
+ */
+
+  /**
+ * Asynchronously loads 3D objects from a server.
+ *
+ * @param {Object} config - The configuration object.
+ * @param {string} config.serverUrl - The server URL.
+ * @param {string} config.streamId - The stream ID.
+ * @param {string} config.objectId - The object ID.
+ * @param {string} config.token - The authentication token.
+ * @returns {Promise<void>}
+ */
   async _load({ serverUrl, streamId, objectId, token }) {
     const loader = new ObjectLoader({ serverUrl, streamId, objectId, token });
     let total = null;
@@ -283,7 +312,14 @@ export class CesiumIfcViewer extends LitElement {
     return correspondingObjects[0]; // Assuming there is only one corresponding object
   }
 
-
+    /**
+   * Creates meshes from the given vertices and face indices.
+   *
+   * @param {Array} vertices - The vertices.
+   * @param {Array} faceIndices - The face indices.
+   * @returns {Array} The created meshes.
+   */
+  // TODO: Improve mesh creation by potentially excluding the first index of 0 from the faces array.
   _createMeshes(vertices, faceIndices) {
     let meshes = [];
     let currentVerts = [];
@@ -291,7 +327,6 @@ export class CesiumIfcViewer extends LitElement {
 
     // Processa tutti gli indici delle facce
     for (let i = 0; i < faceIndices.length; i += 3) {
-      // Controlla se hai un set valido di indici (non zeri consecutivi)
       if (faceIndices[i] !== 0 || faceIndices[i + 1] !== 0 || faceIndices[i + 2] !== 0) {
         console.log("facce")
         currentFaces.push(faceIndices[i], faceIndices[i + 1], faceIndices[i + 2]);
@@ -301,16 +336,13 @@ export class CesiumIfcViewer extends LitElement {
           vertices[faceIndices[i + 2] * 3], vertices[faceIndices[i + 2] * 3 + 1], vertices[faceIndices[i + 2] * 3 + 2]
         );
       } else {
-        // Se incontri uno zero seguito immediatamente da un altro zero, tratta questo come un separatore
         if (faceIndices[i] === 0 && faceIndices[i + 1] === 0) {
           console.log("facce bis")
-          // Se hai già raccolto dei vertici per una mesh, creala prima di ripulire
           if (currentFaces.length > 0) {
             meshes.push(this.createMesh(currentVerts, currentFaces));
             currentVerts = [];
             currentFaces = [];
           }
-          // Salta il prossimo indice zero
           i += 1;
         }
       }
@@ -324,13 +356,17 @@ export class CesiumIfcViewer extends LitElement {
   }
 
 
-
+  /**
+ * Creates a mesh with the given vertices and faces.
+ *
+ * @param {Array} vertices - The vertices.
+ * @param {Array} faces - The faces.
+ * @returns {THREE.Mesh} The created mesh.
+ */
   createMesh(vertices, faces) {
     let geometry = new THREE.BufferGeometry();
     let verts = [];
     let faceIndices = [];
-
-    // Converte i vertici in Float32Array e gli indici delle facce in Uint32Array
     for (let i = 0; i < vertices.length; i += 3) {
       verts.push(vertices[i], vertices[i + 1], vertices[i + 2]);
     }
@@ -389,6 +425,8 @@ export class CesiumIfcViewer extends LitElement {
   this._downloadString(output, 'application/gltf+json', 'combined_model.gltf');
   });
   }
+
+  /* ----------------------------------------------------------------------------------------------------------------------------------------------------------- */
 
   fireReady() {
     return this.dispatchEvent(new CustomEvent("ready", { composed: true }));
