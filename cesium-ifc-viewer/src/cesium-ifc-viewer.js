@@ -24,6 +24,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
+import { IfcObjective } from "web-ifc";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
 
 const CESIUM_VERNETS_CLIPPED_ION_ASSET_ID = 1556965, // ifc-cesium-showcase-cesium-vernets-clipped
@@ -259,16 +260,21 @@ export class CesiumIfcViewer extends LitElement {
       if (!total) total = obj.totalChildrenCount;
     }
 
+    console.log(allObjects);
+
     for (let obj of allObjects) {
-      if (obj["@displayValue"]) {
+      // Controlla se l'oggetto ha direttamente vertices e faces
+      if (obj.vertices && obj.faces) {
+        this.correspondingObjects.push(obj);
+      }
+      else if (obj["@displayValue"]) {
         for (let ref of obj["@displayValue"]) {
           if (ref.referencedId) {
             let correspondingObject = this._getCorrespondingObject(ref.referencedId, allObjects);
             this.correspondingObjects.push(correspondingObject);
           }
         }
-      }
-    }
+      }}
   }
 
   _getCorrespondingObject(referencedId, objectsArray) {
@@ -278,47 +284,56 @@ export class CesiumIfcViewer extends LitElement {
   }
 
 
-  _createMeshes(vertices, faces) {
+  _createMeshes(vertices, faceIndices) {
     let meshes = [];
     let currentVerts = [];
     let currentFaces = [];
 
-    faces.forEach((face, index) => {
-      if (face === 0 && currentFaces.length > 0) {
-        // We've encountered a zero, so create a mesh with the current vertices and faces
-        meshes.push(this._createMesh(currentVerts, currentFaces));
-        // Reset the current vertices and faces for the next mesh
-        currentVerts = [];
-        currentFaces = [];
+    // Processa tutti gli indici delle facce
+    for (let i = 0; i < faceIndices.length; i += 3) {
+      // Controlla se hai un set valido di indici (non zeri consecutivi)
+      if (faceIndices[i] !== 0 || faceIndices[i + 1] !== 0 || faceIndices[i + 2] !== 0) {
+        console.log("facce")
+        currentFaces.push(faceIndices[i], faceIndices[i + 1], faceIndices[i + 2]);
       } else {
-        // Add the current vertex and face to the current vertices and faces
-        currentVerts.push(vertices[index]);
-        currentFaces.push(face);
+        // Se incontri uno zero seguito immediatamente da un altro zero, tratta questo come un separatore
+        if (faceIndices[i] === 0 && faceIndices[i + 1] === 0) {
+          console.log("facce bis")
+          // Se hai già raccolto dei vertici per una mesh, creala prima di ripulire
+          if (currentFaces.length > 0) {
+            meshes.push(this.createMesh(currentVerts, currentFaces));
+            currentVerts = [];
+            currentFaces = [];
+          }
+          // Salta il prossimo indice zero
+          i += 1;
+        }
       }
-    });
+    }
 
-    // Create a mesh for the remaining vertices and faces
     if (currentFaces.length > 0) {
-      meshes.push(this._createMesh(currentVerts, currentFaces));
+      console.log("quelle rimaste")
+      meshes.push(this.createMesh(vertices, currentFaces));
     }
 
     return meshes;
   }
 
-  _createMesh(vertices, faces) {
+  createMesh(vertices, faces) {
     let geometry = new THREE.BufferGeometry();
-
-    // Ensure vertices are in groups of three
     let verts = [];
+    let faceIndices = [];
+
+    // Converte i vertici in Float32Array e gli indici delle facce in Uint32Array
     for (let i = 0; i < vertices.length; i += 3) {
-      verts.push(vertices.slice(i, i + 3));
+      verts.push(vertices[i], vertices[i + 1], vertices[i + 2]);
     }
-    verts = new Float32Array(verts.flat());
+    for (let i = 0; i < faces.length; i++) {
+      faceIndices.push(faces[i]);
+    }
 
-    let faceIndices = new Uint32Array(faces.flat());
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-    geometry.setIndex(new THREE.BufferAttribute(faceIndices, 1));
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(faceIndices), 1));
 
     let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
     return new THREE.Mesh(geometry, material);
@@ -349,22 +364,24 @@ export class CesiumIfcViewer extends LitElement {
       token: this.token
     });
     console.log(this.correspondingObjects);
-let scene = new THREE.Scene();
-this.correspondingObjects.forEach((obj, index) => {
-  console.log("index", index);
-  if (obj.faces && obj.vertices) {
-    console.log(`Creating mesh for object ${index}`);
-    let mesh = this._createMesh(obj.vertices, obj.faces);
-    scene.add(mesh);
-  }
-});
+    let scene = new THREE.Scene();
+    this.correspondingObjects.forEach((obj, index) => {
+      console.log("index", index);
+      if (obj.faces && obj.vertices) {
+        console.log(`Creating mesh for object ${index}`);
+        let meshes = this._createMeshes(obj.vertices, obj.faces);
+        meshes.forEach((mesh) => {
+          scene.add(mesh); // Aggiunge ogni mesh individualmente
+        });
+      }
+    });
 
-// Export the entire scene as a single glTF
-let exporter = new GLTFExporter();
-exporter.parse(scene, result => {
+  // Export the entire scene as a single glTF
+  let exporter = new GLTFExporter();
+  exporter.parse(scene, result => {
   let output = JSON.stringify(result, null, 2);
   this._downloadString(output, 'application/gltf+json', 'combined_model.gltf');
-});
+  });
   }
 
   fireReady() {
