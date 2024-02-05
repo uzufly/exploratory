@@ -18,6 +18,10 @@ import {
   JulianDate,
 } from "cesium";
 import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
+import ObjectLoader from '@speckle/objectloader';
+import * as THREE from 'three';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
@@ -138,6 +142,10 @@ export class CesiumIfcViewer extends LitElement {
      * processing the file that was dragged on top of the viewer.
      */
     _dropError: { type: Object, state: true },
+    serverUrl: { type: String },
+    token: { type: String },
+    streamId: { type: String },
+    objectId: { type: String }
   };
 
   static get styles() {
@@ -166,6 +174,7 @@ export class CesiumIfcViewer extends LitElement {
 
     // Private instance property
     this._viewer = null;
+    this.correspondingObjects = [];
 
     // Public observed properties, reflected from attribute values
     this.modelOrigin = null;
@@ -240,6 +249,92 @@ export class CesiumIfcViewer extends LitElement {
     // viewerArg is unused
   }
 
+  async _load({ serverUrl, streamId, objectId, token }) {
+    const loader = new ObjectLoader({ serverUrl, streamId, objectId, token });
+    let total = null;
+    let allObjects = [];
+
+    for await (let obj of loader.getObjectIterator()) {
+      allObjects.push(obj);
+      if (!total) total = obj.totalChildrenCount;
+    }
+
+    for (let obj of allObjects) {
+      if (obj["@displayValue"]) {
+        for (let ref of obj["@displayValue"]) {
+          if (ref.referencedId) {
+            let correspondingObject = this._getCorrespondingObject(ref.referencedId, allObjects);
+            this.correspondingObjects.push(correspondingObject);
+          }
+        }
+      }
+    }
+  }
+
+  _getCorrespondingObject(referencedId, objectsArray) {
+    let correspondingObjects = objectsArray.filter(obj => obj.id === referencedId);
+    console.log(correspondingObjects);
+    return correspondingObjects[0]; // Assuming there is only one corresponding object
+  }
+
+
+  _createMeshes(vertices, faces) {
+    let meshes = [];
+    let currentVerts = [];
+    let currentFaces = [];
+
+    faces.forEach((face, index) => {
+      if (face === 0 && currentFaces.length > 0) {
+        // We've encountered a zero, so create a mesh with the current vertices and faces
+        meshes.push(this._createMesh(currentVerts, currentFaces));
+        // Reset the current vertices and faces for the next mesh
+        currentVerts = [];
+        currentFaces = [];
+      } else {
+        // Add the current vertex and face to the current vertices and faces
+        currentVerts.push(vertices[index]);
+        currentFaces.push(face);
+      }
+    });
+
+    // Create a mesh for the remaining vertices and faces
+    if (currentFaces.length > 0) {
+      meshes.push(this._createMesh(currentVerts, currentFaces));
+    }
+
+    return meshes;
+  }
+
+  _createMesh(vertices, faces) {
+    let geometry = new THREE.BufferGeometry();
+
+    // Ensure vertices are in groups of three
+    let verts = [];
+    for (let i = 0; i < vertices.length; i += 3) {
+      verts.push(vertices.slice(i, i + 3));
+    }
+    verts = new Float32Array(verts.flat());
+
+    let faceIndices = new Uint32Array(faces.flat());
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+    geometry.setIndex(new THREE.BufferAttribute(faceIndices, 1));
+
+    let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    return new THREE.Mesh(geometry, material);
+  }
+
+  _downloadString(text, contentType, filename) {
+    let a = document.createElement('a');
+    a.href = 'data:' + contentType + ';charset=utf-8,' + encodeURIComponent(text);
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+
   async firstUpdated() {
     CesiumIfcViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
@@ -247,6 +342,29 @@ export class CesiumIfcViewer extends LitElement {
     );
     this._viewer = await this._createCesiumViewer(this.renderRoot);
     this.fireReady();
+    await this._load({
+      serverUrl: this.serverUrl,
+      streamId: this.streamId,
+      objectId: this.objectId,
+      token: this.token
+    });
+    console.log(this.correspondingObjects);
+let scene = new THREE.Scene();
+this.correspondingObjects.forEach((obj, index) => {
+  console.log("index", index);
+  if (obj.faces && obj.vertices) {
+    console.log(`Creating mesh for object ${index}`);
+    let mesh = this._createMesh(obj.vertices, obj.faces);
+    scene.add(mesh);
+  }
+});
+
+// Export the entire scene as a single glTF
+let exporter = new GLTFExporter();
+exporter.parse(scene, result => {
+  let output = JSON.stringify(result, null, 2);
+  this._downloadString(output, 'application/gltf+json', 'combined_model.gltf');
+});
   }
 
   fireReady() {
