@@ -295,6 +295,11 @@ export class CesiumIfcViewer extends LitElement {
       if (faceIndices[i] !== 0 || faceIndices[i + 1] !== 0 || faceIndices[i + 2] !== 0) {
         console.log("facce")
         currentFaces.push(faceIndices[i], faceIndices[i + 1], faceIndices[i + 2]);
+        currentVerts.push(
+          vertices[faceIndices[i] * 3], vertices[faceIndices[i] * 3 + 1], vertices[faceIndices[i] * 3 + 2],
+          vertices[faceIndices[i + 1] * 3], vertices[faceIndices[i + 1] * 3 + 1], vertices[faceIndices[i + 1] * 3 + 2],
+          vertices[faceIndices[i + 2] * 3], vertices[faceIndices[i + 2] * 3 + 1], vertices[faceIndices[i + 2] * 3 + 2]
+        );
       } else {
         // Se incontri uno zero seguito immediatamente da un altro zero, tratta questo come un separatore
         if (faceIndices[i] === 0 && faceIndices[i + 1] === 0) {
@@ -312,12 +317,13 @@ export class CesiumIfcViewer extends LitElement {
     }
 
     if (currentFaces.length > 0) {
-      console.log("quelle rimaste")
       meshes.push(this.createMesh(vertices, currentFaces));
     }
 
     return meshes;
   }
+
+
 
   createMesh(vertices, faces) {
     let geometry = new THREE.BufferGeometry();
