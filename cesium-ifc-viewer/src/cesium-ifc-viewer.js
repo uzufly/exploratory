@@ -24,7 +24,6 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
-import { IfcObjective } from "web-ifc";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
 
 const CESIUM_VERNETS_CLIPPED_ION_ASSET_ID = 1556965, // ifc-cesium-showcase-cesium-vernets-clipped
@@ -320,7 +319,7 @@ export class CesiumIfcViewer extends LitElement {
    * @returns {Array} The created meshes.
    */
   // TODO: Improve mesh creation by potentially excluding the first index of 0 from the faces array.
-  _createMeshes(vertices, faceIndices) {
+  _createMeshes(vertices, faceIndices,  meshId) {
     let meshes = [];
     let currentVerts = [];
     let currentFaces = [];
@@ -339,7 +338,7 @@ export class CesiumIfcViewer extends LitElement {
         if (faceIndices[i] === 0 && faceIndices[i + 1] === 0) {
           console.log("facce bis")
           if (currentFaces.length > 0) {
-            meshes.push(this.createMesh(currentVerts, currentFaces));
+            meshes.push(this.createMesh(currentVerts, currentFaces, meshId));
             currentVerts = [];
             currentFaces = [];
           }
@@ -349,11 +348,41 @@ export class CesiumIfcViewer extends LitElement {
     }
 
     if (currentFaces.length > 0) {
-      meshes.push(this.createMesh(vertices, currentFaces));
+      meshes.push(this.createMesh(vertices, currentFaces, meshId));
     }
 
     return meshes;
   }
+
+  _createSingleMesh(vertices, faces) {
+    let geometry = new THREE.BufferGeometry();
+    let faceIndices = [];
+
+    let k = 0;
+    while (k < faces.length) {
+        if (faces[k] === 1) { // QUAD FACE
+            faceIndices.push(faces[k + 1], faces[k + 2], faces[k + 3]);
+            faceIndices.push(faces[k + 1], faces[k + 3], faces[k + 4]);
+            k += 5;
+        } else if (faces[k] === 0) { // TRIANGLE FACE
+            faceIndices.push(faces[k + 1], faces[k + 2], faces[k + 3]);
+            k += 4;
+        } else {
+            throw new Error(`Mesh face type not supported. Face indicator: ${faces[k]}`);
+        }
+    }
+
+    // Impostare gli attributi di geometria
+    geometry.setIndex(faceIndices);
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+    // Calcolare le normali per l'illuminazione
+    geometry.computeVertexNormals();
+
+    let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    return new THREE.Mesh(geometry, material);
+}
+
 
 
   /**
@@ -363,7 +392,7 @@ export class CesiumIfcViewer extends LitElement {
  * @param {Array} faces - The faces.
  * @returns {THREE.Mesh} The created mesh.
  */
-  createMesh(vertices, faces) {
+  createMesh(vertices, faces, meshName) {
     let geometry = new THREE.BufferGeometry();
     let verts = [];
     let faceIndices = [];
@@ -378,7 +407,10 @@ export class CesiumIfcViewer extends LitElement {
     geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(faceIndices), 1));
 
     let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    return new THREE.Mesh(geometry, material);
+    let mesh =  new THREE.Mesh(geometry, material);
+    mesh.name = meshName;
+
+  return mesh;
   }
 
   _downloadString(text, contentType, filename) {
@@ -411,10 +443,8 @@ export class CesiumIfcViewer extends LitElement {
       console.log("index", index);
       if (obj.faces && obj.vertices) {
         console.log(`Creating mesh for object ${index}`);
-        let meshes = this._createMeshes(obj.vertices, obj.faces);
-        meshes.forEach((mesh) => {
-          scene.add(mesh); // Aggiunge ogni mesh individualmente
-        });
+        let mesh = this._createSingleMesh(obj.vertices, obj.faces);
+        scene.add(mesh); // Aggiunge ogni mesh individualmente
       }
     });
 
