@@ -280,11 +280,11 @@ export class CesiumIfcViewer extends LitElement {
  */
   async _load({ serverUrl, streamId, objectId, token }) {
     const loader = new ObjectLoader({ serverUrl, streamId, objectId, token });
-    let allObjects = [];
+    this.allObjects = [];
     let objectRelations = {}; // Aggiungi qui la struttura per le relazioni
 
     for await (let obj of loader.getObjectIterator()) {
-      allObjects.push(obj);
+      this.allObjects.push(obj);
 
       // Mappatura delle relazioni degli oggetti
       if (obj["@displayValue"]) {
@@ -300,14 +300,14 @@ export class CesiumIfcViewer extends LitElement {
       else if (obj["@displayValue"]) {
         for (let ref of obj["@displayValue"]) {
           if (ref.referencedId) {
-            let correspondingObject = this._getCorrespondingObject(ref.referencedId, allObjects);
+            let correspondingObject = this._getCorrespondingObject(ref.referencedId, this.allObjects);
             this.correspondingObjects.push(correspondingObject);
           }
         }
       }
     }
 
-    console.log("All Objects:", allObjects);
+    console.log("All Objects:", this.allObjects);
     console.log("Object Relations:", objectRelations);
     this.objectRelations = objectRelations; // Salva le relazioni tra oggetti
   }
@@ -388,6 +388,11 @@ export class CesiumIfcViewer extends LitElement {
       token: this.token
     });
     console.log(this.correspondingObjects);
+    const ifcSite = this.allObjects.find(obj => obj.type === 'IFCSITE');
+    const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
+    const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
+    const elevation = ifcSite.RefElevation;
+    console.log(`Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`);
     let scene = new THREE.Scene();
     this.correspondingObjects.forEach((obj, index) => {
       console.log("index", index);
@@ -404,6 +409,15 @@ export class CesiumIfcViewer extends LitElement {
   let output = JSON.stringify(result, null, 2);
   this._downloadString(output, 'application/gltf+json', 'combined_model.gltf');
   });
+  }
+
+  _convertToDecimalDegrees(coordinateArray) {
+    // Converti le coordinate DMS (Gradi, Minuti, Secondi) in gradi decimali
+    // Assumi che `coordinateArray` sia nel formato [Gradi, Minuti, Secondi, ...]
+    let degrees = coordinateArray[0];
+    let minutes = coordinateArray[1];
+    let seconds = coordinateArray[2] + coordinateArray[3] / 1000000; // esempio per convertire i millisecondi
+    return degrees + (minutes / 60) + (seconds / 3600);
   }
 
   /* ----------------------------------------------------------------------------------------------------------------------------------------------------------- */
