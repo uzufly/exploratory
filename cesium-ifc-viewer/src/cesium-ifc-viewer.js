@@ -16,6 +16,7 @@ import {
   HeightReference,
   OpenStreetMapImageryProvider,
   JulianDate,
+  CustomDataSource
 } from "cesium";
 import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
 import ObjectLoader from '@speckle/objectloader';
@@ -281,23 +282,19 @@ export class CesiumIfcViewer extends LitElement {
   async _load({ serverUrl, streamId, objectId, token }) {
     const loader = new ObjectLoader({ serverUrl, streamId, objectId, token });
     this.allObjects = [];
-    let objectRelations = {}; // Aggiungi qui la struttura per le relazioni
+    let objectRelations = {};
 
     for await (let obj of loader.getObjectIterator()) {
       this.allObjects.push(obj);
 
-      // Mappatura delle relazioni degli oggetti
       if (obj["@displayValue"]) {
         objectRelations[obj.id] = obj["@displayValue"].map(ref => ref.referencedId);
       } else {
-        objectRelations[obj.id] = []; // Includi anche gli oggetti senza riferimenti diretti
+        objectRelations[obj.id] = [];
       }
 
-      // Controlla se l'oggetto ha direttamente vertices e faces
-      if (obj.vertices && obj.faces) {
-        this.correspondingObjects.push(obj);
-      }
-      else if (obj["@displayValue"]) {
+
+      if (obj["@displayValue"]) {
         for (let ref of obj["@displayValue"]) {
           if (ref.referencedId) {
             let correspondingObject = this._getCorrespondingObject(ref.referencedId, this.allObjects);
@@ -306,10 +303,8 @@ export class CesiumIfcViewer extends LitElement {
         }
       }
     }
-
-    console.log("All Objects:", this.allObjects);
-    console.log("Object Relations:", objectRelations);
-    this.objectRelations = objectRelations; // Salva le relazioni tra oggetti
+    this.objectRelations = objectRelations;
+    console.log("All objects:", this.allObjects);
   }
 
   _findParentPath(objectId, objectRelations) {
@@ -327,9 +322,11 @@ export class CesiumIfcViewer extends LitElement {
 
 
   _getCorrespondingObject(referencedId, objectsArray) {
-    let correspondingObjects = objectsArray.filter(obj => obj.id === referencedId);
-    console.log(correspondingObjects);
-    return correspondingObjects[0]; // Assuming there is only one corresponding object
+    let correspondingObject = objectsArray.filter(obj => obj.id === referencedId);
+    if (!correspondingObject) {
+      console.error(`No corresponding object found for referencedId: ${referencedId}`);
+    }
+    return correspondingObject; // Assuming there is only one corresponding object
   }
 
   _createSingleMesh(vertices, faces) {
@@ -350,11 +347,9 @@ export class CesiumIfcViewer extends LitElement {
         }
     }
 
-    // Impostare gli attributi di geometria
     geometry.setIndex(faceIndices);
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
-    // Calcolare le normali per l'illuminazione
     geometry.computeVertexNormals();
 
     let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -387,36 +382,75 @@ export class CesiumIfcViewer extends LitElement {
       objectId: this.objectId,
       token: this.token
     });
-    console.log(this.correspondingObjects);
     const ifcSite = this.allObjects.find(obj => obj.type === 'IFCSITE');
     const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
     const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
-    const elevation = ifcSite.RefElevation;
+    const elevation = 825;
     console.log(`Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`);
-    let scene = new THREE.Scene();
-    this.correspondingObjects.forEach((obj, index) => {
-      console.log("index", index);
-      if (obj.faces && obj.vertices) {
-        console.log(`Creating mesh for object ${index}`);
-        let mesh = this._createSingleMesh(obj.vertices, obj.faces);
-        scene.add(mesh); // Aggiunge ogni mesh individualmente
-      }
+
+    let ifcDataSource = new CustomDataSource('myGltfDataSource');
+    this._viewer.dataSources.add(ifcDataSource);
+
+    this.correspondingObjects.forEach(async (obj, index) => {
+      obj.forEach(async (obj, index) => {
+        if (obj.faces && obj.vertices) {
+          console.log(`Creating mesh for object ${index}`);
+          let mesh = this._createSingleMesh(obj.vertices, obj.faces);
+          let gltfBlob = await this._convertMeshToGltf(mesh);
+          let gltfUrl = URL.createObjectURL(gltfBlob);
+
+          ifcDataSource.entities.add({
+            position: Cartesian3.fromDegrees(longitude, latitude, elevation),
+            model: {
+              uri: gltfUrl
+            }
+          });
+        }
+      })
     });
 
-  // Export the entire scene as a single glTF
-  let exporter = new GLTFExporter();
-  exporter.parse(scene, result => {
-  let output = JSON.stringify(result, null, 2);
-  this._downloadString(output, 'application/gltf+json', 'combined_model.gltf');
-  });
+    console.log("source:", ifcDataSource.entities);
+    const destination = Cartesian3.fromDegrees(longitude, latitude, elevation);
+
+    this._viewer.camera.flyTo({
+      destination: destination,
+      duration: 3.0
+    });
+  }
+
+  async _convertMeshToGltf(mesh) {
+    // Promise che gestirà l'esportazione
+    return new Promise((resolve, reject) => {
+      // Crea un'istanza dell'esportatore glTF
+      const exporter = new GLTFExporter();
+
+      // Opzioni per l'esportatore
+      const options = {
+        binary: true,
+        trs: true,
+        onlyVisible: true,
+        truncateDrawRange: true,
+        embedImages: true,
+        animations: []
+      };
+
+      exporter.parse(mesh, (gltf) => {
+        if (options.binary) {
+          const blob = new Blob([gltf], { type: 'model/gltf-binary' });
+          resolve(blob);
+        } else {
+          const gltfString = JSON.stringify(gltf, null, 2);
+          const blob = new Blob([gltfString], { type: 'model/gltf+json' });
+          resolve(blob);
+        }
+      }, options);
+    });
   }
 
   _convertToDecimalDegrees(coordinateArray) {
-    // Converti le coordinate DMS (Gradi, Minuti, Secondi) in gradi decimali
-    // Assumi che `coordinateArray` sia nel formato [Gradi, Minuti, Secondi, ...]
     let degrees = coordinateArray[0];
     let minutes = coordinateArray[1];
-    let seconds = coordinateArray[2] + coordinateArray[3] / 1000000; // esempio per convertire i millisecondi
+    let seconds = coordinateArray[2] + coordinateArray[3] / 1000000;
     return degrees + (minutes / 60) + (seconds / 3600);
   }
 
@@ -496,7 +530,7 @@ export class CesiumIfcViewer extends LitElement {
 
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
-    viewer.zoomTo(tileset);
+   // viewer.zoomTo(tileset);
 
     return this.modelTooltipMixin(viewer);
   }
