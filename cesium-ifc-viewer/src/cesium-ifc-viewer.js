@@ -280,17 +280,19 @@ export class CesiumIfcViewer extends LitElement {
  */
   async _load({ serverUrl, streamId, objectId, token }) {
     const loader = new ObjectLoader({ serverUrl, streamId, objectId, token });
-    let total = null;
     let allObjects = [];
+    let objectRelations = {}; // Aggiungi qui la struttura per le relazioni
 
     for await (let obj of loader.getObjectIterator()) {
       allObjects.push(obj);
-      if (!total) total = obj.totalChildrenCount;
-    }
 
-    console.log(allObjects);
+      // Mappatura delle relazioni degli oggetti
+      if (obj["@displayValue"]) {
+        objectRelations[obj.id] = obj["@displayValue"].map(ref => ref.referencedId);
+      } else {
+        objectRelations[obj.id] = []; // Includi anche gli oggetti senza riferimenti diretti
+      }
 
-    for (let obj of allObjects) {
       // Controlla se l'oggetto ha direttamente vertices e faces
       if (obj.vertices && obj.faces) {
         this.correspondingObjects.push(obj);
@@ -302,56 +304,19 @@ export class CesiumIfcViewer extends LitElement {
             this.correspondingObjects.push(correspondingObject);
           }
         }
-      }}
+      }
+    }
+
+    console.log("All Objects:", allObjects);
+    console.log("Object Relations:", objectRelations);
+    this.objectRelations = objectRelations; // Salva le relazioni tra oggetti
   }
+
 
   _getCorrespondingObject(referencedId, objectsArray) {
     let correspondingObjects = objectsArray.filter(obj => obj.id === referencedId);
     console.log(correspondingObjects);
     return correspondingObjects[0]; // Assuming there is only one corresponding object
-  }
-
-    /**
-   * Creates meshes from the given vertices and face indices.
-   *
-   * @param {Array} vertices - The vertices.
-   * @param {Array} faceIndices - The face indices.
-   * @returns {Array} The created meshes.
-   */
-  // TODO: Improve mesh creation by potentially excluding the first index of 0 from the faces array.
-  _createMeshes(vertices, faceIndices,  meshId) {
-    let meshes = [];
-    let currentVerts = [];
-    let currentFaces = [];
-
-    // Processa tutti gli indici delle facce
-    for (let i = 0; i < faceIndices.length; i += 3) {
-      if (faceIndices[i] !== 0 || faceIndices[i + 1] !== 0 || faceIndices[i + 2] !== 0) {
-        console.log("facce")
-        currentFaces.push(faceIndices[i], faceIndices[i + 1], faceIndices[i + 2]);
-        currentVerts.push(
-          vertices[faceIndices[i] * 3], vertices[faceIndices[i] * 3 + 1], vertices[faceIndices[i] * 3 + 2],
-          vertices[faceIndices[i + 1] * 3], vertices[faceIndices[i + 1] * 3 + 1], vertices[faceIndices[i + 1] * 3 + 2],
-          vertices[faceIndices[i + 2] * 3], vertices[faceIndices[i + 2] * 3 + 1], vertices[faceIndices[i + 2] * 3 + 2]
-        );
-      } else {
-        if (faceIndices[i] === 0 && faceIndices[i + 1] === 0) {
-          console.log("facce bis")
-          if (currentFaces.length > 0) {
-            meshes.push(this.createMesh(currentVerts, currentFaces, meshId));
-            currentVerts = [];
-            currentFaces = [];
-          }
-          i += 1;
-        }
-      }
-    }
-
-    if (currentFaces.length > 0) {
-      meshes.push(this.createMesh(vertices, currentFaces, meshId));
-    }
-
-    return meshes;
   }
 
   _createSingleMesh(vertices, faces) {
@@ -384,34 +349,6 @@ export class CesiumIfcViewer extends LitElement {
 }
 
 
-
-  /**
- * Creates a mesh with the given vertices and faces.
- *
- * @param {Array} vertices - The vertices.
- * @param {Array} faces - The faces.
- * @returns {THREE.Mesh} The created mesh.
- */
-  createMesh(vertices, faces, meshName) {
-    let geometry = new THREE.BufferGeometry();
-    let verts = [];
-    let faceIndices = [];
-    for (let i = 0; i < vertices.length; i += 3) {
-      verts.push(vertices[i], vertices[i + 1], vertices[i + 2]);
-    }
-    for (let i = 0; i < faces.length; i++) {
-      faceIndices.push(faces[i]);
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
-    geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(faceIndices), 1));
-
-    let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    let mesh =  new THREE.Mesh(geometry, material);
-    mesh.name = meshName;
-
-  return mesh;
-  }
 
   _downloadString(text, contentType, filename) {
     let a = document.createElement('a');
