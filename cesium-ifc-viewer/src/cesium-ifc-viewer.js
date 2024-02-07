@@ -312,6 +312,19 @@ export class CesiumIfcViewer extends LitElement {
     this.objectRelations = objectRelations; // Salva le relazioni tra oggetti
   }
 
+  _findParentPath(objectId, objectRelations) {
+    let path = [objectId];
+    let currentId = objectId;
+
+    while (objectRelations[currentId]) {
+      let parentId = objectRelations[currentId];
+      path.push(parentId);
+      currentId = parentId;
+    }
+
+    return path;
+  }
+
 
   _getCorrespondingObject(referencedId, objectsArray) {
     let correspondingObjects = objectsArray.filter(obj => obj.id === referencedId);
