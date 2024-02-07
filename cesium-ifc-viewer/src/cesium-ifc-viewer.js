@@ -16,11 +16,15 @@ import {
   HeightReference,
   OpenStreetMapImageryProvider,
   JulianDate,
-  CustomDataSource
+  CustomDataSource,
+  Quaternion,
+  Matrix3,
+  Math
 } from "cesium";
 import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
 import ObjectLoader from '@speckle/objectloader';
 import * as THREE from 'three';
+import * as Cesium from 'cesium';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 
@@ -333,6 +337,21 @@ export class CesiumIfcViewer extends LitElement {
     let geometry = new THREE.BufferGeometry();
     let faceIndices = [];
 
+    // Create a rotation matrix
+    let rotationMatrix = new THREE.Matrix4();
+    rotationMatrix.makeRotationX(THREE.Math.degToRad(-90));
+
+    // Create a new array for the rotated vertices
+    let rotatedVertices = [];
+
+    // Apply the rotation to the vertices
+    for (let i = 0; i < vertices.length; i += 3) {
+        let vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+        vertex.applyMatrix4(rotationMatrix);
+        rotatedVertices.push(vertex.x, vertex.y, vertex.z);
+    }
+
+
     let k = 0;
     while (k < faces.length) {
         if (faces[k] === 1) { // QUAD FACE
@@ -348,7 +367,8 @@ export class CesiumIfcViewer extends LitElement {
     }
 
     geometry.setIndex(faceIndices);
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    //geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(rotatedVertices, 3));
 
     geometry.computeVertexNormals();
 
@@ -385,7 +405,7 @@ export class CesiumIfcViewer extends LitElement {
     const ifcSite = this.allObjects.find(obj => obj.type === 'IFCSITE');
     const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
     const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
-    const elevation = 825;
+    const elevation = 745;
     console.log(`Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`);
 
     let ifcDataSource = new CustomDataSource('myGltfDataSource');
@@ -402,7 +422,7 @@ export class CesiumIfcViewer extends LitElement {
           ifcDataSource.entities.add({
             position: Cartesian3.fromDegrees(longitude, latitude, elevation),
             model: {
-              uri: gltfUrl
+              uri: gltfUrl,
             }
           });
         }
@@ -419,12 +439,9 @@ export class CesiumIfcViewer extends LitElement {
   }
 
   async _convertMeshToGltf(mesh) {
-    // Promise che gestirà l'esportazione
     return new Promise((resolve, reject) => {
       // Crea un'istanza dell'esportatore glTF
       const exporter = new GLTFExporter();
-
-      // Opzioni per l'esportatore
       const options = {
         binary: true,
         trs: true,
