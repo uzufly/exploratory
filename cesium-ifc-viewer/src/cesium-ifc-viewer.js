@@ -17,9 +17,6 @@ import {
   OpenStreetMapImageryProvider,
   JulianDate,
   CustomDataSource,
-  Quaternion,
-  Matrix3,
-  Math
 } from "cesium";
 import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
 import ObjectLoader from '@speckle/objectloader';
@@ -292,6 +289,7 @@ export class CesiumIfcViewer extends LitElement {
       this.allObjects.push(obj);
 
       if (obj["@displayValue"]) {
+        console.log("Object with display value:", obj);
         objectRelations[obj.id] = obj["@displayValue"].map(ref => ref.referencedId);
       } else {
         objectRelations[obj.id] = [];
@@ -308,6 +306,7 @@ export class CesiumIfcViewer extends LitElement {
       }
     }
     this.objectRelations = objectRelations;
+    console.log("All objects relation:", this.objectRelations);
     console.log("All objects:", this.allObjects);
   }
 
@@ -333,7 +332,7 @@ export class CesiumIfcViewer extends LitElement {
     return correspondingObject; // Assuming there is only one corresponding object
   }
 
-  _createSingleMesh(vertices, faces) {
+  _createSingleMesh(vertices, faces, objectId) {
     let geometry = new THREE.BufferGeometry();
     let faceIndices = [];
 
@@ -372,8 +371,13 @@ export class CesiumIfcViewer extends LitElement {
 
     geometry.computeVertexNormals();
 
-    let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    return new THREE.Mesh(geometry, material);
+    let color = '#' + Math.floor(Math.random()*16777215).toString(16);
+    let material = new THREE.MeshBasicMaterial({ color: color });
+    let mesh = new THREE.Mesh(geometry, material);
+    mesh.userData = {
+      objectId: objectId,
+    };
+    return mesh;
 }
 
 
@@ -405,32 +409,111 @@ export class CesiumIfcViewer extends LitElement {
     const ifcSite = this.allObjects.find(obj => obj.type === 'IFCSITE');
     const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
     const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
-    const elevation = 745;
+    const elevation = 729;
     console.log(`Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`);
 
     let ifcDataSource = new CustomDataSource('myGltfDataSource');
     this._viewer.dataSources.add(ifcDataSource);
 
-    this.correspondingObjects.forEach(async (obj, index) => {
-      obj.forEach(async (obj, index) => {
-        if (obj.faces && obj.vertices) {
+ // const scene = new THREE.Scene();
+
+ this.correspondingObjects.forEach(async (obj, index) => {
+  obj.forEach(async (obj, index) => {
+      if (obj.faces && obj.vertices) {
           console.log(`Creating mesh for object ${index}`);
-          let mesh = this._createSingleMesh(obj.vertices, obj.faces);
+          let mesh = this._createSingleMesh(obj.vertices, obj.faces, obj.id);
           let gltfBlob = await this._convertMeshToGltf(mesh);
           let gltfUrl = URL.createObjectURL(gltfBlob);
 
           ifcDataSource.entities.add({
-            position: Cartesian3.fromDegrees(longitude, latitude, elevation),
-            model: {
-              uri: gltfUrl,
-            }
+              position: Cartesian3.fromDegrees(longitude, latitude, elevation),
+              model: {
+                  uri: gltfUrl,
+              },
+              speckleId: obj.id // Store the object ID in the entity ID for easy access later
           });
-        }
-      })
-    });
+      }
+  })
+});
 
-    console.log("source:", ifcDataSource.entities);
-    const destination = Cartesian3.fromDegrees(longitude, latitude, elevation);
+    /* const exporter = new GLTFExporter();
+    exporter.parse(scene, (gltf) => {
+      const gltfString = JSON.stringify(gltf, null, 2);
+      this._downloadString(gltfString, 'model/gltf+json', 'scene.gltf');
+    }); */
+
+
+    const viewer = this._viewer;
+const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+handler.setInputAction(async (click) => {
+  const pickedObject = viewer.scene.pick(click.position);
+  if (Cesium.defined(pickedObject) && pickedObject.id.model) {
+      const objectId = pickedObject.id.speckleId;
+      console.log("Clicked Mesh ID:", objectId);
+      const parentObject = this.allObjects.find(obj => obj['@displayValue'].some(ref => ref.referencedId === objectId));
+      const parentId = parentObject.id;
+
+      console.log("Parent ID:", parentPath);
+      const response = await fetch('https://speckle.xyz/graphql', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.token}`,
+          },
+          body: JSON.stringify({
+              query: `
+                  query Object($streamId: String!, $id: String!) {
+                      stream(id: $streamId) {
+                          id
+                          object(id: $id) {
+                              totalChildrenCount
+                              id
+                              speckleType
+                              data
+                              __typename
+                          }
+                          __typename
+                      }
+                  }
+              `,
+              variables: {
+                  streamId: this.streamId,
+                  id: parentId,
+              },
+          }),
+      });
+
+      const data = await response.json();
+      console.log(data);
+
+      // Funzione per formattare le proprietà
+      const formatProperty = (value) => {
+          if (Array.isArray(value)) {
+              return `[Array di lunghezza ${value.length}]`;
+          } else if (typeof value === 'object' && value !== null) {
+              return '[Oggetto]';
+          } else {
+              return value.toString();
+          }
+      };
+
+      // Genera l'HTML per la box delle informazioni
+      const description = Object.entries(data.data.stream.object).map(([key, value]) => `
+          <tr>
+              <th>${key}</th>
+              <td>${formatProperty(value)}</td>
+          </tr>
+      `).join('');
+
+      // Aggiorna la descrizione
+      pickedObject.id.description = `<table>${description}</table>`;
+      console.log(pickedObject.id);
+  }
+}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+
+    const destination = Cartesian3.fromDegrees(longitude, latitude, 750);
 
     this._viewer.camera.flyTo({
       destination: destination,
