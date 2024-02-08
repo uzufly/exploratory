@@ -23,6 +23,9 @@ import ObjectLoader from '@speckle/objectloader';
 import * as THREE from 'three';
 import * as Cesium from 'cesium';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import { ApolloClient, InMemoryCache, HttpLink, split } from '@apollo/client';
+import { WebSocketLink } from '@apollo/client/link/ws';
+import { getMainDefinition } from '@apollo/client/utilities';
 
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
