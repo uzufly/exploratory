@@ -451,10 +451,12 @@ handler.setInputAction(async (click) => {
   if (Cesium.defined(pickedObject) && pickedObject.id.model) {
       const objectId = pickedObject.id.speckleId;
       console.log("Clicked Mesh ID:", objectId);
-      const parentObject = this.allObjects.find(obj => obj['@displayValue'].some(ref => ref.referencedId === objectId));
+      const parentObject = this.allObjects.find(obj =>
+        obj['@displayValue'] && obj['@displayValue'].some(ref => ref.referencedId === objectId)
+      );
       const parentId = parentObject.id;
 
-      console.log("Parent ID:", parentPath);
+      console.log("Parent ID:", parentObject);
       const response = await fetch('https://speckle.xyz/graphql', {
           method: 'POST',
           headers: {
@@ -467,13 +469,8 @@ handler.setInputAction(async (click) => {
                       stream(id: $streamId) {
                           id
                           object(id: $id) {
-                              totalChildrenCount
-                              id
-                              speckleType
                               data
-                              __typename
                           }
-                          __typename
                       }
                   }
               `,
@@ -485,9 +482,23 @@ handler.setInputAction(async (click) => {
       });
 
       const data = await response.json();
-      console.log(data);
+      console.log(data.data.stream.object.data);
 
-      // Funzione per formattare le proprietà
+      const extractProperties = (data) => {
+        return {
+          expressID: data.expressID,
+          ObjectType: data.ObjectType,
+          Description: data.Description,
+          OwnerHistory: data.OwnerHistory,
+          Name: data.Name,
+          type: data.type
+        };
+      };
+
+      const objectData = data.data.stream.object.data;
+      const specificProperties = extractProperties(objectData);
+
+      /* // Funzione per formattare le proprietà
       const formatProperty = (value) => {
           if (Array.isArray(value)) {
               return `[Array di lunghezza ${value.length}]`;
@@ -496,13 +507,14 @@ handler.setInputAction(async (click) => {
           } else {
               return value.toString();
           }
-      };
+      }; */
 
       // Genera l'HTML per la box delle informazioni
-      const description = Object.entries(data.data.stream.object).map(([key, value]) => `
+      const propertiesArray = Object.entries(specificProperties);
+      const description = propertiesArray.map(([key, value]) => `
           <tr>
               <th>${key}</th>
-              <td>${formatProperty(value)}</td>
+              <td>${JSON.stringify(value)}</td>
           </tr>
       `).join('');
 
