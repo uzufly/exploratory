@@ -253,8 +253,8 @@ export class CesiumIfcViewer extends LitElement {
     console.log("Starting subscription for stream ID:", this.streamId);
 
     const SUBSCRIPTION_QUERY = gql`
-      subscription ProjectUpdated($streamId: String!, $commitId: String) {
-        commitUpdated(streamId: $streamId, commitId: $commitId)
+      subscription Subscription($streamId: String!) {
+        commitCreated(streamId: $streamId)
       }
     `;
 
@@ -263,17 +263,11 @@ export class CesiumIfcViewer extends LitElement {
         query: SUBSCRIPTION_QUERY,
         variables: {
           streamId: "8917fd99d7",
-          commitId: "e233dc166c",
-          /* target: {
-            projectId: "8917fd99d7", //is stream id
-            resourceIdString: "e233dc16", //is commit id and cId
-            loadedVersionsOnly: false
-          } */
         },
       })
       .subscribe({
         next: (data) => {
-          console.log("Subscription data:", data.data.commitUpdated);
+          console.log("Subscription data:", data);
           const dialog = document.querySelector("dialog");
 
           // If the dialog doesn't exist, create it
@@ -282,8 +276,10 @@ export class CesiumIfcViewer extends LitElement {
 
             const message = document.createElement("div");
             message.className = "message";
-            let formattedMessage = "Upstream project updated message:\n" + JSON.stringify(data.data.commitUpdated.message, null, 2); // Indented for better readability
-            formattedMessage = formattedMessage.replace(/\\n/g, '\n'); // Replace escaped newlines with actual newlines
+            let formattedMessage =
+              "Upstream project updated message:\n" +
+              JSON.stringify(data.data.commitedCreated.message, null, 2); // Indented for better readability
+            formattedMessage = formattedMessage.replace(/\\n/g, "\n"); // Replace escaped newlines with actual newlines
             message.textContent = formattedMessage;
 
             // Create a container for the buttons
@@ -433,15 +429,15 @@ export class CesiumIfcViewer extends LitElement {
     for await (let obj of loader.getObjectIterator()) {
       this.allObjects.push(obj);
 
-      if (obj["@displayValue"]) {
-        objectRelations[obj.id] = obj["@displayValue"].map(
-          (ref) => ref.referencedId,
-        );
-      } else {
-        objectRelations[obj.id] = [];
+      if(obj.faces & obj.vertices){
+        console.log("pushing obj with id:", obj.id)
+        this.correspondingObjects.push(obj);
       }
+    }
 
+    for (let obj of this.allObjects) {
       if (obj["@displayValue"]) {
+        console.log("Display value:", obj);
         for (let ref of obj["@displayValue"]) {
           if (ref.referencedId) {
             let correspondingObject = this._getCorrespondingObject(
@@ -453,6 +449,7 @@ export class CesiumIfcViewer extends LitElement {
         }
       }
     }
+
     this.objectRelations = objectRelations;
   }
 
@@ -470,16 +467,21 @@ export class CesiumIfcViewer extends LitElement {
   }
 
   _getCorrespondingObject(referencedId, objectsArray) {
+    console.log("Objects array:", objectsArray);
+    console.log("Referenced ID search in:", referencedId);
     let correspondingObject = objectsArray.filter(
-      (obj) => obj.id === referencedId,
+      (obj) => obj.id.trim() === referencedId.trim(),
     );
-    if (!correspondingObject) {
+    if (correspondingObject.length === 0) {
       console.error(
         `No corresponding object found for referencedId: ${referencedId}`,
       );
     }
+    console.log("Corresponding object:", correspondingObject);
+    console.log("Object array:", objectsArray)
     return correspondingObject;
   }
+
 
   _createSingleMesh(vertices, faces, objectId) {
     let geometry = new THREE.BufferGeometry();
@@ -531,11 +533,12 @@ export class CesiumIfcViewer extends LitElement {
     geometry.computeVertexNormals();
 
     let color = "#" + Math.floor(Math.random() * 16777215).toString(16);
-    let material = new THREE.MeshBasicMaterial({ color: color });
+    let material = new THREE.MeshBasicMaterial();
     let mesh = new THREE.Mesh(geometry, material);
     mesh.userData = {
       objectId: objectId,
     };
+    console.log("creating mesh with id:", objectId);
     return mesh;
   }
 
@@ -553,6 +556,42 @@ export class CesiumIfcViewer extends LitElement {
   async firstUpdated() {
     this.apolloClient = this._createApolloClient(this.token);
     this.startSubscription();
+    const STREAM_QUERY = gql`
+      query Stream(
+        $streamId: String!
+      ) {
+        stream(id: $streamId) {
+          id
+          name
+          description
+          commits {
+            totalCount
+            cursor
+            items {
+              commentCount
+              id
+              referencedObject
+              message
+              branchName
+              authorName
+              createdAt
+            }
+          }
+        }
+      }
+    `;
+
+    // Execute the query
+    const result = await this.apolloClient.query({
+      query: STREAM_QUERY,
+      variables: {
+      streamId: "8917fd99d7",
+    },
+    });
+
+    // Extract the objectId from the result
+    const objectId = result.data.stream.commits.items[0].referencedObject;
+    console.log("Object ID:", objectId);
     CesiumIfcViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
       this.ionAccessToken,
@@ -562,13 +601,13 @@ export class CesiumIfcViewer extends LitElement {
     await this._load({
       serverUrl: this.serverUrl,
       streamId: this.streamId,
-      objectId: this.objectId,
+      objectId: objectId,
       token: this.token,
     });
     const ifcSite = this.allObjects.find((obj) => obj.type === "IFCSITE");
     const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
     const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
-    const elevation = 729;
+    const elevation = 731;
     console.log(
       `Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`,
     );
@@ -577,10 +616,12 @@ export class CesiumIfcViewer extends LitElement {
     this._viewer.dataSources.add(ifcDataSource);
 
     // const scene = new THREE.Scene();
+    console.log("Creating meshes for objects:", this.correspondingObjects);
 
     this.correspondingObjects.forEach(async (obj) => {
       obj.forEach(async (obj) => {
         if (obj.faces && obj.vertices) {
+          console.log("Creating mesh for object:", obj.id)
           let mesh = this._createSingleMesh(obj.vertices, obj.faces, obj.id);
           //TODO: instead of drawing one gltf for each mesh, draw one gltf for all meshes
           let gltfBlob = await this._convertMeshToGltf(mesh);
