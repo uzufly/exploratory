@@ -70,12 +70,13 @@ dialog {
   padding: 20px;
   min-width: 400px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.08);
   border: none;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
   background-color: #fff;
-
 }
 
 /* Dialog buttons container */
@@ -104,7 +105,7 @@ dialog button {
   margin-top: 10px;
   border: none;
   border-radius: 4px;
-  background-color: #007BFF;
+  background-color: #007bff;
   color: #ffffff;
   text-transform: uppercase;
   cursor: pointer;
@@ -131,4 +132,3 @@ dialog div.message {
   font-size: 24px;
   line-height: 1.5;
 }
-
