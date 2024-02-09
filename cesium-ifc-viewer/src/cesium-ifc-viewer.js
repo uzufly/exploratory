@@ -19,10 +19,13 @@ import {
   CustomDataSource,
 } from "cesium";
 import { default as viewerDragDropMixin } from "./viewerDragDropMixin.js";
-import ObjectLoader from '@speckle/objectloader';
-import * as THREE from 'three';
-import * as Cesium from 'cesium';
-import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import ObjectLoader from "@speckle/objectloader";
+import * as THREE from "three";
+import * as Cesium from "cesium";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+import { ApolloClient, InMemoryCache, HttpLink, split } from "@apollo/client";
+import { WebSocketLink } from "@apollo/client/link/ws";
+import { getMainDefinition } from "@apollo/client/utilities";
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
@@ -146,7 +149,7 @@ export class CesiumIfcViewer extends LitElement {
     serverUrl: { type: String },
     token: { type: String },
     streamId: { type: String },
-    objectId: { type: String }
+    objectId: { type: String },
   };
 
   static get styles() {
@@ -252,33 +255,76 @@ export class CesiumIfcViewer extends LitElement {
 
   /*------------------------------------------------------------------------------------------------------------------------ */
   /**
- * This module provides functionality for loading and displaying 3D objects from a server.
- * It uses the Three.js library to create meshes from the loaded objects from speckle and display them in a 3D scene.
- *
- * The main method is `_load`, which fetches the objects from the server and processes them.
- * If an object has vertices and faces, it is stored for later processing.
- * If an object has a "@displayValue" property, the method finds the corresponding object and stores it.
- *
- * The `_getCorrespondingObject` method is used to find an object that corresponds to a given ID in an array of objects.
- *
- * The `_createMeshes` method processes the vertices and face indices of the objects and creates meshes from them.
- * It creates a new mesh whenever it encounters a face index of 0.
- *
- * The `createMesh` method creates a single mesh from given vertices and faces.
- * It creates a new THREE.BufferGeometry object and sets its 'position' attribute and index.
- * It then creates a new THREE.Mesh object with the geometry and a basic material and returns it.
- */
+   * This module provides functionality for loading and displaying 3D objects from a server.
+   * It uses the Three.js library to create meshes from the loaded objects from speckle and display them in a 3D scene.
+   *
+   * The main method is `_load`, which fetches the objects from the server and processes them.
+   * If an object has vertices and faces, it is stored for later processing.
+   * If an object has a "@displayValue" property, the method finds the corresponding object and stores it.
+   *
+   * The `_getCorrespondingObject` method is used to find an object that corresponds to a given ID in an array of objects.
+   *
+   * The `_createMeshes` method processes the vertices and face indices of the objects and creates meshes from them.
+   * It creates a new mesh whenever it encounters a face index of 0.
+   *
+   * The `createMesh` method creates a single mesh from given vertices and faces.
+   * It creates a new THREE.BufferGeometry object and sets its 'position' attribute and index.
+   * It then creates a new THREE.Mesh object with the geometry and a basic material and returns it.
+   */
 
   /**
- * Asynchronously loads 3D objects from a server.
- *
- * @param {Object} config - The configuration object.
- * @param {string} config.serverUrl - The server URL.
- * @param {string} config.streamId - The stream ID.
- * @param {string} config.objectId - The object ID.
- * @param {string} config.token - The authentication token.
- * @returns {Promise<void>}
- */
+   * Asynchronously loads 3D objects from a server.
+   *
+   * @param {Object} config - The configuration object.
+   * @param {string} config.serverUrl - The server URL.
+   * @param {string} config.streamId - The stream ID.
+   * @param {string} config.objectId - The object ID.
+   * @param {string} config.token - The authentication token.
+   * @returns {Promise<void>}
+   */
+  createApolloClient(token) {
+    // HTTP connection to the API
+    const httpLink = new HttpLink({
+      uri: "https://speckle.xyz/graphql",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // WebSocket link for subscriptions
+    const wsLink = new WebSocketLink({
+      uri: `wss://speckle.xyz/graphql`,
+      options: {
+        reconnect: true,
+        connectionParams: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      },
+    });
+
+    // Using the ability to split links, you can send data to each link
+    // depending on what kind of operation is being sent
+    const link = split(
+      ({ query }) => {
+        const definition = getMainDefinition(query);
+        return (
+          definition.kind === "OperationDefinition" &&
+          definition.operation === "subscription"
+        );
+      },
+      wsLink,
+      httpLink,
+    );
+
+    // Instantiate Apollo Client
+    return new ApolloClient({
+      link,
+      cache: new InMemoryCache(),
+    });
+  }
+
   async _load({ serverUrl, streamId, objectId, token }) {
     const loader = new ObjectLoader({ serverUrl, streamId, objectId, token });
     this.allObjects = [];
@@ -289,16 +335,20 @@ export class CesiumIfcViewer extends LitElement {
 
       if (obj["@displayValue"]) {
         console.log("Object with display value:", obj);
-        objectRelations[obj.id] = obj["@displayValue"].map(ref => ref.referencedId);
+        objectRelations[obj.id] = obj["@displayValue"].map(
+          (ref) => ref.referencedId,
+        );
       } else {
         objectRelations[obj.id] = [];
       }
 
-
       if (obj["@displayValue"]) {
         for (let ref of obj["@displayValue"]) {
           if (ref.referencedId) {
-            let correspondingObject = this._getCorrespondingObject(ref.referencedId, this.allObjects);
+            let correspondingObject = this._getCorrespondingObject(
+              ref.referencedId,
+              this.allObjects,
+            );
             this.correspondingObjects.push(correspondingObject);
           }
         }
@@ -322,11 +372,14 @@ export class CesiumIfcViewer extends LitElement {
     return path;
   }
 
-
   _getCorrespondingObject(referencedId, objectsArray) {
-    let correspondingObject = objectsArray.filter(obj => obj.id === referencedId);
+    let correspondingObject = objectsArray.filter(
+      (obj) => obj.id === referencedId,
+    );
     if (!correspondingObject) {
-      console.error(`No corresponding object found for referencedId: ${referencedId}`);
+      console.error(
+        `No corresponding object found for referencedId: ${referencedId}`,
+      );
     }
     return correspondingObject; // Assuming there is only one corresponding object
   }
@@ -344,58 +397,66 @@ export class CesiumIfcViewer extends LitElement {
 
     // Apply the rotation to the vertices
     for (let i = 0; i < vertices.length; i += 3) {
-        let vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
-        vertex.applyMatrix4(rotationMatrix);
-        rotatedVertices.push(vertex.x, vertex.y, vertex.z);
+      let vertex = new THREE.Vector3(
+        vertices[i],
+        vertices[i + 1],
+        vertices[i + 2],
+      );
+      vertex.applyMatrix4(rotationMatrix);
+      rotatedVertices.push(vertex.x, vertex.y, vertex.z);
     }
-
 
     let k = 0;
     while (k < faces.length) {
-        if (faces[k] === 1) { // QUAD FACE
-            faceIndices.push(faces[k + 1], faces[k + 2], faces[k + 3]);
-            faceIndices.push(faces[k + 1], faces[k + 3], faces[k + 4]);
-            k += 5;
-        } else if (faces[k] === 0) { // TRIANGLE FACE
-            faceIndices.push(faces[k + 1], faces[k + 2], faces[k + 3]);
-            k += 4;
-        } else {
-            throw new Error(`Mesh face type not supported. Face indicator: ${faces[k]}`);
-        }
+      if (faces[k] === 1) {
+        // QUAD FACE
+        faceIndices.push(faces[k + 1], faces[k + 2], faces[k + 3]);
+        faceIndices.push(faces[k + 1], faces[k + 3], faces[k + 4]);
+        k += 5;
+      } else if (faces[k] === 0) {
+        // TRIANGLE FACE
+        faceIndices.push(faces[k + 1], faces[k + 2], faces[k + 3]);
+        k += 4;
+      } else {
+        throw new Error(
+          `Mesh face type not supported. Face indicator: ${faces[k]}`,
+        );
+      }
     }
 
     geometry.setIndex(faceIndices);
     //geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(rotatedVertices, 3));
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(rotatedVertices, 3),
+    );
 
     geometry.computeVertexNormals();
 
-    let color = '#' + Math.floor(Math.random()*16777215).toString(16);
+    let color = "#" + Math.floor(Math.random() * 16777215).toString(16);
     let material = new THREE.MeshBasicMaterial({ color: color });
     let mesh = new THREE.Mesh(geometry, material);
     mesh.userData = {
       objectId: objectId,
     };
     return mesh;
-}
-
-
+  }
 
   _downloadString(text, contentType, filename) {
-    let a = document.createElement('a');
-    a.href = 'data:' + contentType + ';charset=utf-8,' + encodeURIComponent(text);
+    let a = document.createElement("a");
+    a.href =
+      "data:" + contentType + ";charset=utf-8," + encodeURIComponent(text);
     a.download = filename;
-    a.style.display = 'none';
+    a.style.display = "none";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }
 
-
   async firstUpdated() {
     CesiumIfcViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
-      this.ionAccessToken
+      this.ionAccessToken,
     );
     this._viewer = await this._createCesiumViewer(this.renderRoot);
     this.fireReady();
@@ -403,37 +464,39 @@ export class CesiumIfcViewer extends LitElement {
       serverUrl: this.serverUrl,
       streamId: this.streamId,
       objectId: this.objectId,
-      token: this.token
+      token: this.token,
     });
-    const ifcSite = this.allObjects.find(obj => obj.type === 'IFCSITE');
+    const ifcSite = this.allObjects.find((obj) => obj.type === "IFCSITE");
     const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
     const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
     const elevation = 729;
-    console.log(`Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`);
+    console.log(
+      `Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`,
+    );
 
-    let ifcDataSource = new CustomDataSource('myGltfDataSource');
+    let ifcDataSource = new CustomDataSource("myGltfDataSource");
     this._viewer.dataSources.add(ifcDataSource);
 
- // const scene = new THREE.Scene();
+    // const scene = new THREE.Scene();
 
- this.correspondingObjects.forEach(async (obj, index) => {
-  obj.forEach(async (obj, index) => {
-      if (obj.faces && obj.vertices) {
+    this.correspondingObjects.forEach(async (obj, index) => {
+      obj.forEach(async (obj, index) => {
+        if (obj.faces && obj.vertices) {
           console.log(`Creating mesh for object ${index}`);
           let mesh = this._createSingleMesh(obj.vertices, obj.faces, obj.id);
           let gltfBlob = await this._convertMeshToGltf(mesh);
           let gltfUrl = URL.createObjectURL(gltfBlob);
 
           ifcDataSource.entities.add({
-              position: Cartesian3.fromDegrees(longitude, latitude, elevation),
-              model: {
-                  uri: gltfUrl,
-              },
-              speckleId: obj.id // Store the object ID in the entity ID for easy access later
+            position: Cartesian3.fromDegrees(longitude, latitude, elevation),
+            model: {
+              uri: gltfUrl,
+            },
+            speckleId: obj.id, // Store the object ID in the entity ID for easy access later
           });
-      }
-  })
-});
+        }
+      });
+    });
 
     /* const exporter = new GLTFExporter();
     exporter.parse(scene, (gltf) => {
@@ -441,29 +504,30 @@ export class CesiumIfcViewer extends LitElement {
       this._downloadString(gltfString, 'model/gltf+json', 'scene.gltf');
     }); */
 
-
     const viewer = this._viewer;
-const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
-handler.setInputAction(async (click) => {
-  const pickedObject = viewer.scene.pick(click.position);
-  if (Cesium.defined(pickedObject) && pickedObject.id.model) {
-      const objectId = pickedObject.id.speckleId;
-      console.log("Clicked Mesh ID:", objectId);
-      const parentObject = this.allObjects.find(obj =>
-        obj['@displayValue'] && obj['@displayValue'].some(ref => ref.referencedId === objectId)
-      );
-      const parentId = parentObject.id;
+    handler.setInputAction(async (click) => {
+      const pickedObject = viewer.scene.pick(click.position);
+      if (Cesium.defined(pickedObject) && pickedObject.id.model) {
+        const objectId = pickedObject.id.speckleId;
+        console.log("Clicked Mesh ID:", objectId);
+        const parentObject = this.allObjects.find(
+          (obj) =>
+            obj["@displayValue"] &&
+            obj["@displayValue"].some((ref) => ref.referencedId === objectId),
+        );
+        const parentId = parentObject.id;
 
-      console.log("Parent ID:", parentObject);
-      const response = await fetch('https://speckle.xyz/graphql', {
-          method: 'POST',
+        console.log("Parent ID:", parentObject);
+        const response = await fetch("https://speckle.xyz/graphql", {
+          method: "POST",
           headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.token}`,
           },
           body: JSON.stringify({
-              query: `
+            query: `
                   query Object($streamId: String!, $id: String!) {
                       stream(id: $streamId) {
                           id
@@ -473,31 +537,31 @@ handler.setInputAction(async (click) => {
                       }
                   }
               `,
-              variables: {
-                  streamId: this.streamId,
-                  id: parentId,
-              },
+            variables: {
+              streamId: this.streamId,
+              id: parentId,
+            },
           }),
-      });
+        });
 
-      const data = await response.json();
-      console.log(data.data.stream.object.data);
+        const data = await response.json();
+        console.log(data.data.stream.object.data);
 
-      const extractProperties = (data) => {
-        return {
-          expressID: data.expressID,
-          ObjectType: data.ObjectType,
-          Description: data.Description,
-          OwnerHistory: data.OwnerHistory,
-          Name: data.Name,
-          type: data.type
+        const extractProperties = (data) => {
+          return {
+            expressID: data.expressID,
+            ObjectType: data.ObjectType,
+            Description: data.Description,
+            OwnerHistory: data.OwnerHistory,
+            Name: data.Name,
+            type: data.type,
+          };
         };
-      };
 
-      const objectData = data.data.stream.object.data;
-      const specificProperties = extractProperties(objectData);
+        const objectData = data.data.stream.object.data;
+        const specificProperties = extractProperties(objectData);
 
-      /* // Funzione per formattare le proprietà
+        /* // Funzione per formattare le proprietà
       const formatProperty = (value) => {
           if (Array.isArray(value)) {
               return `[Array di lunghezza ${value.length}]`;
@@ -508,27 +572,30 @@ handler.setInputAction(async (click) => {
           }
       }; */
 
-      // Genera l'HTML per la box delle informazioni
-      const propertiesArray = Object.entries(specificProperties);
-      const description = propertiesArray.map(([key, value]) => `
+        // Genera l'HTML per la box delle informazioni
+        const propertiesArray = Object.entries(specificProperties);
+        const description = propertiesArray
+          .map(
+            ([key, value]) => `
           <tr>
               <th>${key}</th>
               <td>${JSON.stringify(value)}</td>
           </tr>
-      `).join('');
+      `,
+          )
+          .join("");
 
-      // Aggiorna la descrizione
-      pickedObject.id.description = `<table>${description}</table>`;
-      console.log(pickedObject.id);
-  }
-}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
+        // Aggiorna la descrizione
+        pickedObject.id.description = `<table>${description}</table>`;
+        console.log(pickedObject.id);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     const destination = Cartesian3.fromDegrees(longitude, latitude, 750);
 
     this._viewer.camera.flyTo({
       destination: destination,
-      duration: 3.0
+      duration: 3.0,
     });
   }
 
@@ -542,19 +609,23 @@ handler.setInputAction(async (click) => {
         onlyVisible: true,
         truncateDrawRange: true,
         embedImages: true,
-        animations: []
+        animations: [],
       };
 
-      exporter.parse(mesh, (gltf) => {
-        if (options.binary) {
-          const blob = new Blob([gltf], { type: 'model/gltf-binary' });
-          resolve(blob);
-        } else {
-          const gltfString = JSON.stringify(gltf, null, 2);
-          const blob = new Blob([gltfString], { type: 'model/gltf+json' });
-          resolve(blob);
-        }
-      }, options);
+      exporter.parse(
+        mesh,
+        (gltf) => {
+          if (options.binary) {
+            const blob = new Blob([gltf], { type: "model/gltf-binary" });
+            resolve(blob);
+          } else {
+            const gltfString = JSON.stringify(gltf, null, 2);
+            const blob = new Blob([gltfString], { type: "model/gltf+json" });
+            resolve(blob);
+          }
+        },
+        options,
+      );
     });
   }
 
@@ -562,7 +633,7 @@ handler.setInputAction(async (click) => {
     let degrees = coordinateArray[0];
     let minutes = coordinateArray[1];
     let seconds = coordinateArray[2] + coordinateArray[3] / 1000000;
-    return degrees + (minutes / 60) + (seconds / 3600);
+    return degrees + minutes / 60 + seconds / 3600;
   }
 
   /* ----------------------------------------------------------------------------------------------------------------------------------------------------------- */
@@ -596,8 +667,9 @@ handler.setInputAction(async (click) => {
     const OSMImageryLayer = new OpenStreetMapImageryProvider({
       url: "https://tiles.stadiamaps.com/tiles/stamen_toner/",
       fileExtension: "png",
-      credit: "Map tiles hosting by Stadia Maps, design by Stamen Design,"
-        + " under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
+      credit:
+        "Map tiles hosting by Stadia Maps, design by Stamen Design," +
+        " under CC BY 3.0. Data by OpenStreetMap, under CC BY SA.",
     });
 
     const layer = viewer.imageryLayers.addImageryProvider(OSMImageryLayer);
@@ -620,7 +692,7 @@ handler.setInputAction(async (click) => {
       {
         shadows: ShadowMode.DISABLED,
         maximumScreenSpaceError: 1,
-      }
+      },
     );
 
     let translation = Cartesian3.fromArray([0.0, 0.0, 6]);
@@ -634,14 +706,14 @@ handler.setInputAction(async (click) => {
 
     const socle = await Cesium3DTileset.fromIonAssetId(
       SOCLE_VERNETS_CNPA_ION_ASSET_ID,
-      { shadows: ShadowMode.DISABLED }
+      { shadows: ShadowMode.DISABLED },
     );
 
     socle.modelMatrix = matrix;
 
     viewer.scene.primitives.add(tileset);
     viewer.scene.primitives.add(socle);
-   // viewer.zoomTo(tileset);
+    // viewer.zoomTo(tileset);
 
     return this.modelTooltipMixin(viewer);
   }

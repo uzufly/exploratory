@@ -1,7 +1,10 @@
 {
   "root": true,
   "plugins": [ "custom-elements" ],
-  "extends": [ "eslint:recommended", "plugin:custom-elements/recommended" ],
+  "extends": [ "eslint:recommended",
+  "plugin:custom-elements/recommended",
+  "prettier" // shoud come last (@see https://github.com/prettier/eslint-config-prettier#installation)
+  ],
   "env": {
     "browser": true,
     "es2022": true

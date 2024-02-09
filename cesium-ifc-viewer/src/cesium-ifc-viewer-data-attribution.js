@@ -42,34 +42,34 @@ export class CesiumIfcViewerDataAttribution extends LitElement {
      * Viewer has not been instantiated. Use `this._creditsEl.deref()` to
      * get the actual value.
      */
-    _creditsEl: { state: true }
+    _creditsEl: { state: true },
   };
 
   static get styles() {
     return css`
-        *,
-        ::after,
-        ::before {
-          box-sizing: border-box;
-        }
-        :host {
-          display: block;
-        }
-        div[part="dialog-open"],
-        dialog button {
-          cursor: pointer;
-        }
-        dialog {
-          color: white;
-          background-color: #444;
-        }
-        dialog::backdrop {
-          background-color: rgba(240, 240, 240, 0.6);
-        }
-        dialog h1 {
-          margin-block-start: 0;
-        }
-      `;
+      *,
+      ::after,
+      ::before {
+        box-sizing: border-box;
+      }
+      :host {
+        display: block;
+      }
+      div[part="dialog-open"],
+      dialog button {
+        cursor: pointer;
+      }
+      dialog {
+        color: white;
+        background-color: #444;
+      }
+      dialog::backdrop {
+        background-color: rgba(240, 240, 240, 0.6);
+      }
+      dialog h1 {
+        margin-block-start: 0;
+      }
+    `;
   }
 
   constructor() {
@@ -94,7 +94,7 @@ export class CesiumIfcViewerDataAttribution extends LitElement {
   async firstUpdated() {
     this._dialogEl = this.renderRoot.querySelector(`dialog`);
     this._viewerEl = document.querySelector(`cesium-ifc-viewer#${this.for}`);
-    this._viewerEl.addEventListener( "ready", () => {
+    this._viewerEl.addEventListener("ready", () => {
       // Grab the credits directly from the internals of the Cesium
       // `Viewer` widget (more precisely, from the internals of its
       // `CreditDisplay` object, which manages the credits), as Cesium
@@ -110,5 +110,8 @@ export class CesiumIfcViewerDataAttribution extends LitElement {
 }
 
 if (!window.customElements.get("cesium-ifc-viewer-data-attribution")) {
-  window.customElements.define("cesium-ifc-viewer-data-attribution", CesiumIfcViewerDataAttribution);
+  window.customElements.define(
+    "cesium-ifc-viewer-data-attribution",
+    CesiumIfcViewerDataAttribution,
+  );
 }

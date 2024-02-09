@@ -53,7 +53,7 @@ export function viewerDragDropMixin(viewer, options) {
   }
   if (Object.prototype.hasOwnProperty.call(viewer, "dropEnabled")) {
     throw new DeveloperError(
-      "dropEnabled is already defined by another mixin."
+      "dropEnabled is already defined by another mixin.",
     );
   }
   if (Object.prototype.hasOwnProperty.call(viewer, "dropError")) {
@@ -61,12 +61,12 @@ export function viewerDragDropMixin(viewer, options) {
   }
   if (Object.prototype.hasOwnProperty.call(viewer, "clearOnDrop")) {
     throw new DeveloperError(
-      "clearOnDrop is already defined by another mixin."
+      "clearOnDrop is already defined by another mixin.",
     );
   }
   if (Object.prototype.hasOwnProperty.call(viewer, "flyToOnDrop")) {
     throw new DeveloperError(
-      "flyToOnDrop is already defined by another mixin."
+      "flyToOnDrop is already defined by another mixin.",
     );
   }
   //>>includeEnd('debug');
@@ -255,7 +255,7 @@ export function viewerDragDropMixin(viewer, options) {
         clampToGround,
         modelOrigin,
         modelOrientation,
-        ifcBaseURL
+        ifcBaseURL,
       );
       reader.onerror = createDropErrorCallback(viewer, file);
       reader.readAsText(file);
@@ -303,7 +303,7 @@ function createOnLoadCallback(
   clampToGround,
   modelOrigin,
   modelOrientation,
-  ifcBaseURL
+  ifcBaseURL,
 ) {
   // console.log( `viewerDragDropMixin › createOnLoadCallback(viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL): `,
   //   viewer, file, proxy, clampToGround, modelOrigin, modelOrientation, ifcBaseURL); // DEBUG
@@ -356,7 +356,7 @@ function createOnLoadCallback(
         viewer.dropError.raiseEvent(
           viewer,
           fileName,
-          `Unrecognized file: ${fileName}`
+          `Unrecognized file: ${fileName}`,
         );
         return;
       }

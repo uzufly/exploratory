@@ -117,7 +117,7 @@ function onProgress(progress, total, process) {
     `IFCDataSource › processIFCData() › onProgress:`,
     progress,
     total,
-    process
+    process,
   );
 }
 
@@ -183,7 +183,7 @@ async function processIFCData(dataSource, data, options) {
   const HPR = new HeadingPitchRoll(headingRad, pitchRad, rollRad);
   const modelOrientation = Transforms.headingPitchRollQuaternion(
     modelOrigin,
-    HPR
+    HPR,
   );
 
   // const fileObjURLs = [];
@@ -312,7 +312,7 @@ async function load(dataSource, entityCollection, data, options) {
       return result;
     } else {
       throw TypeError(
-        `'data' is expected to be instance of a Blob; got ${typeof data}`
+        `'data' is expected to be instance of a Blob; got ${typeof data}`,
       );
     }
   } catch (error) {
