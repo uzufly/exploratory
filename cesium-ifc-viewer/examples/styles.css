@@ -61,3 +61,74 @@ cesium-ifc-viewer-data-attribution::part(dialog-close) {
   border-radius: 1.5rem;
   border-style: none;
 }
+
+dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  min-width: 400px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background-color: #fff;
+
+}
+
+/* Dialog buttons container */
+dialog .dialog-buttons {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* Dialog message */
+dialog .message {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: pre-wrap; /* This will allow for line breaks */
+}
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+dialog button {
+  padding: 10px 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007BFF;
+  color: #ffffff;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  margin-right: 20px;
+}
+
+dialog button:hover {
+  background-color: #0056b3;
+}
+
+dialog button.close-button {
+  background-color: #6c757d;
+}
+
+dialog button.close-button:hover {
+  background-color: #5a6268;
+}
+
+dialog div.message {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 24px;
+  line-height: 1.5;
+}
+
