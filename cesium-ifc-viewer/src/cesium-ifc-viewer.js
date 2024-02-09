@@ -26,6 +26,7 @@ import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { ApolloClient, InMemoryCache, HttpLink, split } from "@apollo/client";
 import { WebSocketLink } from "@apollo/client/link/ws";
 import { getMainDefinition } from "@apollo/client/utilities";
+import { gql } from "@apollo/client";
 
 import cesiumWidgetsRawCSS from "bundle-text:cesium/Build/CesiumUnminified/Widgets/widgets.css";
 const cesiumWidgetsCSS = unsafeCSS(cesiumWidgetsRawCSS);
@@ -178,6 +179,9 @@ export class CesiumIfcViewer extends LitElement {
 
     // Private instance property
     this._viewer = null;
+    this._apolloClient = null;
+    this._subscription = null;
+    this.streamId = null;
     this.correspondingObjects = [];
 
     // Public observed properties, reflected from attribute values
@@ -227,6 +231,102 @@ export class CesiumIfcViewer extends LitElement {
     //
     // We clone it to avoid side-effects on the original element.
     return creditDisplay?._creditList.cloneNode(true);
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopSubscription();
+  }
+
+  startSubscription() {
+    if (!this.apolloClient || !this.streamId) {
+      console.warn(
+        "Apollo client or stream ID not available for subscription.",
+      );
+      return;
+    }
+
+    console.log("Starting subscription for stream ID:", this.streamId);
+
+    const SUBSCRIPTION_QUERY = gql`
+      subscription ProjectUpdated($streamId: String!, $commitId: String) {
+        commitUpdated(streamId: $streamId, commitId: $commitId)
+      }
+    `;
+
+    this.subscription = this.apolloClient
+      .subscribe({
+        query: SUBSCRIPTION_QUERY,
+        variables: {
+          streamId: "8917fd99d7",
+          commitId: "e233dc166c",
+          /* target: {
+            projectId: "8917fd99d7", //is stream id
+            resourceIdString: "e233dc16", //is commit id and cId
+            loadedVersionsOnly: false
+          } */
+        },
+      })
+      .subscribe({
+        next: (data) => {
+          console.log("Subscription data:", data.data.commitUpdated);
+          const dialog = document.querySelector("dialog");
+
+          // If the dialog doesn't exist, create it
+          if (!dialog) {
+            const newDialog = document.createElement("dialog");
+
+            const message = document.createElement("div");
+            message.className = "message";
+            let formattedMessage = "Upstream project updated message:\n" + JSON.stringify(data.data.commitUpdated.message, null, 2); // Indented for better readability
+            formattedMessage = formattedMessage.replace(/\\n/g, '\n'); // Replace escaped newlines with actual newlines
+            message.textContent = formattedMessage;
+
+            // Create a container for the buttons
+            const buttonContainer = document.createElement("div");
+            buttonContainer.className = "dialog-buttons";
+
+            // Creating the refresh button
+            const reloadButton = document.createElement("button");
+            reloadButton.textContent = "Refresh";
+            reloadButton.onclick = () => location.reload();
+
+            // Creating the close button
+            const closeButton = document.createElement("button");
+            closeButton.className = "close-button";
+            closeButton.textContent = "Close";
+            closeButton.onclick = () => newDialog.close();
+
+            // Append buttons to the container
+            buttonContainer.appendChild(reloadButton);
+            buttonContainer.appendChild(closeButton);
+
+            // Append the message and button container to the dialog
+            newDialog.appendChild(message);
+            newDialog.appendChild(buttonContainer);
+
+            document.body.appendChild(newDialog);
+            newDialog.showModal();
+          } else {
+            // If the dialog already exists, just show it
+            dialog.showModal();
+          }
+        },
+        error: (err) => {
+          console.error("Subscription error:", err);
+        },
+      });
+  }
+
+  stopSubscription() {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+      this.subscription = null;
+    }
   }
 
   render() {
@@ -282,7 +382,7 @@ export class CesiumIfcViewer extends LitElement {
    * @param {string} config.token - The authentication token.
    * @returns {Promise<void>}
    */
-  createApolloClient(token) {
+  _createApolloClient(token) {
     // HTTP connection to the API
     const httpLink = new HttpLink({
       uri: "https://speckle.xyz/graphql",
@@ -334,7 +434,6 @@ export class CesiumIfcViewer extends LitElement {
       this.allObjects.push(obj);
 
       if (obj["@displayValue"]) {
-        console.log("Object with display value:", obj);
         objectRelations[obj.id] = obj["@displayValue"].map(
           (ref) => ref.referencedId,
         );
@@ -355,8 +454,6 @@ export class CesiumIfcViewer extends LitElement {
       }
     }
     this.objectRelations = objectRelations;
-    console.log("All objects relation:", this.objectRelations);
-    console.log("All objects:", this.allObjects);
   }
 
   _findParentPath(objectId, objectRelations) {
@@ -381,7 +478,7 @@ export class CesiumIfcViewer extends LitElement {
         `No corresponding object found for referencedId: ${referencedId}`,
       );
     }
-    return correspondingObject; // Assuming there is only one corresponding object
+    return correspondingObject;
   }
 
   _createSingleMesh(vertices, faces, objectId) {
@@ -454,6 +551,8 @@ export class CesiumIfcViewer extends LitElement {
   }
 
   async firstUpdated() {
+    this.apolloClient = this._createApolloClient(this.token);
+    this.startSubscription();
     CesiumIfcViewer._setCesiumGlobalConfig(
       this.cesiumBaseURL,
       this.ionAccessToken,
@@ -479,11 +578,11 @@ export class CesiumIfcViewer extends LitElement {
 
     // const scene = new THREE.Scene();
 
-    this.correspondingObjects.forEach(async (obj, index) => {
-      obj.forEach(async (obj, index) => {
+    this.correspondingObjects.forEach(async (obj) => {
+      obj.forEach(async (obj) => {
         if (obj.faces && obj.vertices) {
-          console.log(`Creating mesh for object ${index}`);
           let mesh = this._createSingleMesh(obj.vertices, obj.faces, obj.id);
+          //TODO: instead of drawing one gltf for each mesh, draw one gltf for all meshes
           let gltfBlob = await this._convertMeshToGltf(mesh);
           let gltfUrl = URL.createObjectURL(gltfBlob);
 
@@ -511,7 +610,6 @@ export class CesiumIfcViewer extends LitElement {
       const pickedObject = viewer.scene.pick(click.position);
       if (Cesium.defined(pickedObject) && pickedObject.id.model) {
         const objectId = pickedObject.id.speckleId;
-        console.log("Clicked Mesh ID:", objectId);
         const parentObject = this.allObjects.find(
           (obj) =>
             obj["@displayValue"] &&
@@ -519,7 +617,6 @@ export class CesiumIfcViewer extends LitElement {
         );
         const parentId = parentObject.id;
 
-        console.log("Parent ID:", parentObject);
         const response = await fetch("https://speckle.xyz/graphql", {
           method: "POST",
           headers: {
@@ -545,7 +642,6 @@ export class CesiumIfcViewer extends LitElement {
         });
 
         const data = await response.json();
-        console.log(data.data.stream.object.data);
 
         const extractProperties = (data) => {
           return {
@@ -561,18 +657,6 @@ export class CesiumIfcViewer extends LitElement {
         const objectData = data.data.stream.object.data;
         const specificProperties = extractProperties(objectData);
 
-        /* // Funzione per formattare le proprietà
-      const formatProperty = (value) => {
-          if (Array.isArray(value)) {
-              return `[Array di lunghezza ${value.length}]`;
-          } else if (typeof value === 'object' && value !== null) {
-              return '[Oggetto]';
-          } else {
-              return value.toString();
-          }
-      }; */
-
-        // Genera l'HTML per la box delle informazioni
         const propertiesArray = Object.entries(specificProperties);
         const description = propertiesArray
           .map(
@@ -585,9 +669,7 @@ export class CesiumIfcViewer extends LitElement {
           )
           .join("");
 
-        // Aggiorna la descrizione
         pickedObject.id.description = `<table>${description}</table>`;
-        console.log(pickedObject.id);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
@@ -798,7 +880,6 @@ export class CesiumIfcViewer extends LitElement {
         unclickModel();
 
         clickedModel = model;
-        // console.log(clickedModel);
         model.color = Color.RED;
       }
     }
