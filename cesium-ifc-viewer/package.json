@@ -73,6 +73,8 @@
     "cesium": "^1.110.1",
     "graphql": "^16.8.1",
     "lit": "^3.0.1",
+    "react": "^18.2.0",
+    "subscriptions-transport-ws": "^0.11.0",
     "web-ifc": "0.0.35",
     "web-ifc-three": "0.0.121",
     "web-ifc-viewer": "1.0.213"
