@@ -278,7 +278,7 @@ export class CesiumIfcViewer extends LitElement {
             message.className = "message";
             let formattedMessage =
               "Upstream project updated message:\n" +
-              JSON.stringify(data.data.commitedCreated.message, null, 2); // Indented for better readability
+              JSON.stringify(data.data.commitCreated.message, null, 2); // Indented for better readability
             formattedMessage = formattedMessage.replace(/\\n/g, "\n"); // Replace escaped newlines with actual newlines
             message.textContent = formattedMessage;
 
@@ -532,8 +532,9 @@ export class CesiumIfcViewer extends LitElement {
 
     geometry.computeVertexNormals();
 
-    let color = "#" + Math.floor(Math.random() * 16777215).toString(16);
-    let material = new THREE.MeshBasicMaterial();
+    let grayScale = Math.floor(Math.random() * (50 - 10) + 10).toString(16);
+    let color = "#" + grayScale + grayScale + grayScale;
+    let material = new THREE.MeshBasicMaterial({color: color});
     let mesh = new THREE.Mesh(geometry, material);
     mesh.userData = {
       objectId: objectId,
@@ -607,7 +608,7 @@ export class CesiumIfcViewer extends LitElement {
     const ifcSite = this.allObjects.find((obj) => obj.type === "IFCSITE");
     const latitude = this._convertToDecimalDegrees(ifcSite.RefLatitude);
     const longitude = this._convertToDecimalDegrees(ifcSite.RefLongitude);
-    const elevation = 731;
+    const elevation = 729;
     console.log(
       `Latitude: ${latitude}, Longitude: ${longitude}, Elevation: ${elevation}`,
     );
